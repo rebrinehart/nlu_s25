@@ -42,7 +42,10 @@ def get_closest_words(embeddings: Embeddings, vectors: np.ndarray,
         k words that are closest to vectors[i] in the embedding space,
         not necessarily in order
     """
-    raise NotImplementedError("Problem 3c has not been completed yet!")
+    sims = cosine_sim(vectors, embeddings.vectors)
+    top_k_indices = [np.argsort(sim)[-k:] for sim in sims]
+    return [[embeddings.words[i] for i in indices] for indices in top_k_indices]
+
 
 
 # This type alias represents the format that the testing data should be
