@@ -1,0 +1,929 @@
+try:  # Load embeddings if they haven't been loaded yet
+    embeddings
+except NameError:
+    embeddings = Embeddings.from_file("word_embeddings/glove_50d.txt")
+    
+# Find the neighbors of "king," "man," and "woman"
+vecs = embeddings["king", "man", "woman"]
+get_closest_words(embeddings, vecs, k=4)
+
+---------------------------------------------------------------------------
+TypeError                                 Traceback (most recent call last)
+Cell In[8], line 8
+      6 # Find the neighbors of "king," "man," and "woman"
+      7 vecs = embeddings["king", "man", "woman"]
+----> 8 get_closest_words(embeddings, vecs, k=4)
+
+File ~/Documents/github/nlu_s25/hw1/test_analogies.py:45, in get_closest_words(embeddings, vectors, k)
+     30 def get_closest_words(embeddings: Embeddings, vectors: np.ndarray,
+     31                       k: int = 1) -> List[List[str]]:
+     32     """
+     33     Problem 3c: Implement this function.
+     34 
+   (...)
+     43         not necessarily in order
+     44     """
+---> 45     sims = cosine_sim(embeddings, vectors)
+     46     return [[list(embeddings.keys())[i] for i in np.argsort(sim)[-k:]] for sim in sims]
+
+File ~/Documents/github/nlu_s25/hw1/test_analogies.py:22, in cosine_sim(x, y)
+     11 def cosine_sim(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+     12     """
+     13     Problem 3b: Implement this function.
+     14 
+   (...)
+     20         column j is the cosine similarity between x[i] and y[j]
+     21     """
+---> 22     dot_prod = np.dot(x, y.T)
+     23     norm_x = np.linalg.norm(x, axis = 1, keepdims = True)
+     24     norm_y = np.linalg.norm(y, axis = 1, keepdims = True)
+
+File ~/Documents/github/nlu_s25/hw1/embeddings.py:45, in Embeddings.__getitem__(self, words)
+     37 def __getitem__(self, words: Iterable[str]) -> np.ndarray:
+     38     """
+     39     Retrieves embeddings for a list of words.
+     40 
+   (...)
+     43         for each i, the ith row is the embedding for words[i]
+     44     """
+---> 45     return np.array([self.vectors[self.indices[word]] for word in words])
+
+TypeError: 'int' object is not iterable
+
+ChatGPT said:
+The error you're encountering is caused by passing a tuple of words ("king", "man", "woman") to the embeddings object in this line:
+
+python
+Copy code
+vecs = embeddings["king", "man", "woman"]
+In Python, ("king", "man", "woman") is being interpreted as a single tuple, not as individual words. The __getitem__ method of your Embeddings class expects a list or iterable of words, not a tuple of arguments.
+
+To fix this, you should pass a list or a tuple in the correct format, like this:
+
+python
+Copy code
+vecs = embeddings[["king", "man", "woman"]]
+This will retrieve the embeddings for each of the words "king", "man", and "woman" from the embeddings object.
+
+Corrected Code:
+python
+Copy code
+try:  # Load embeddings if they haven't been loaded yet
+    embeddings
+except NameError:
+    embeddings = Embeddings.from_file("word_embeddings/glove_50d.txt")
+
+# Find the neighbors of "king," "man," and "woman"
+vecs = embeddings[["king", "man", "woman"]]
+get_closest_words(embeddings, vecs, k=4)
+This should resolve the TypeError you're seeing. Let me know if you encounter any more issues!
+
+
+
+
+
+
+You said:
+without modifying the code above, how can i instead modify this code:
+"""
+Code for Problems 2 and 3 of HW 1.
+"""
+from typing import Dict, List, Tuple
+
+import numpy as np
+
+from embeddings import Embeddings
+
+
+def cosine_sim(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """
+    Problem 3b: Implement this function.
+
+    Computes the cosine similarity between two matrices of row vectors.
+
+    :param x: A 2D array of shape (m, embedding_size)
+    :param y: A 2D array of shape (n, embedding_size)
+    :return: An array of shape (m, n), where the entry in row i and
+        column j is the cosine similarity between x[i] and y[j]
+    """
+    dot_prod = np.dot(x, y.T)
+    norm_x = np.linalg.norm(x, axis = 1, keepdims = True)
+    norm_y = np.linalg.norm(y, axis = 1, keepdims = True)
+    cos_sim = dot_prod / (norm_x @ norm_y.T)
+    return cos_sim
+
+
+
+def get_closest_words(embeddings: Embeddings, vectors: np.ndarray,
+                      k: int = 1) -> List[List[str]]:
+    """
+    Problem 3c: Implement this function.
+
+    Finds the top k words whose embeddings are closest to a given vector
+    in terms of cosine similarity.
+
+    :param embeddings: A set of word embeddings
+    :param vectors: A 2D array of shape (m, embedding_size)
+    :param k: The number of closest words to find for each vector
+    :return: A list of m lists of words, where the ith list contains the
+        k words that are closest to vectors[i] in the embedding space,
+        not necessarily in order
+    """
+    sims = cosine_sim(embeddings, vectors)
+    return [[list(embeddings.keys())[i] for i in np.argsort(sim)[-k:]] for sim in sims]
+
+
+
+
+# This type alias represents the format that the testing data should be
+# deserialized into. An analogy is a tuple of 4 strings, and an
+# AnalogiesDataset is a dict that maps a relation type to the list of
+# analogies under that relation type.
+AnalogiesDataset = Dict[str, List[Tuple[str, str, str, str]]]
+
+
+def load_analogies(filename: str) -> AnalogiesDataset:
+    """
+    Problem 2b: Implement this function.
+
+    Loads testing data for 3CosAdd from a .txt file and deserializes it
+    into the AnalogiesData format.
+
+    :param filename: The name of the file containing the testing data
+    :return: An AnalogiesDataset containing the data in the file. The
+        format of the data is described in the problem set and in the
+        docstring for the AnalogiesDataset type alias
+    """
+    analogies = {}
+    current_analogy_type = None
+    with open(filename, "r") as file:
+        for line in file:
+            line = line.strip().lower()
+            if line.startswith(":"):
+                current_analogy_type = line[1:].strip()
+                analogies[current_analogy_type] = []
+            elif line:
+                words = line.split()
+                if len(words) == 4 and current_analogy_type:
+                    analogies[current_analogy_type].append(tuple(words))
+    return analogies
+        
+
+def run_analogy_test(embeddings: Embeddings, test_data: AnalogiesDataset,
+                     k: int = 1) -> Dict[str, float]:
+    """
+    Problem 3d: Implement this function.
+
+    Runs the 3CosAdd test for a set of embeddings and analogy questions.
+
+    :param embeddings: The embeddings to be evaluated using 3CosAdd
+    :param test_data: The set of analogies with which to compute analogy
+        question accuracy
+    :param k: The "lenience" with which accuracy will be computed. An
+        analogy question will be considered to have been answered
+        correctly as long as the target word is within the top k closest
+        words to the target vector, even if it is not the closest word
+    :return: The results of the 3CosAdd test, in the format of a dict
+        that maps each relation type to the analogy question accuracy
+        attained by embeddings on analogies from that relation type
+    """
+    raise NotImplementedError("Problem 3d has not been completed yet!")
+ChatGPT said:
+To modify the code so that it works correctly with the existing logic, we need to adjust the usage of the embeddings object when calling the cosine_sim function in the get_closest_words function. Specifically, we need to ensure that embeddings is passed as a list of vectors, not as a dictionary.
+
+Here's how to modify your code:
+
+Adjust get_closest_words:
+Extract Embedding Vectors: Modify the code inside get_closest_words to get the word embeddings from the embeddings object by extracting all the vectors and using the corresponding keys for comparison.
+Call cosine_sim with Embedding Vectors: Pass only the vectors from the embeddings to cosine_sim to calculate cosine similarities.
+Modified Code:
+python
+Copy code
+def get_closest_words(embeddings: Embeddings, vectors: np.ndarray, k: int = 1) -> List[List[str]]:
+    """
+    Finds the top k words whose embeddings are closest to a given vector in terms of cosine similarity.
+
+    :param embeddings: A set of word embeddings
+    :param vectors: A 2D array of shape (m, embedding_size)
+    :param k: The number of closest words to find for each vector
+    :return: A list of m lists of words, where the ith list contains the
+        k words that are closest to vectors[i] in the embedding space,
+        not necessarily in order
+    """
+    # Extract all embeddings as a 2D array and get the words from the embeddings keys
+    all_vectors = np.array([embeddings[word] for word in embeddings.keys()])
+    
+    # Compute cosine similarity between the input vectors and all embeddings
+    sims = cosine_sim(all_vectors, vectors)
+    
+    # Get the top k closest words for each input vector
+    return [[list(embeddings.keys())[i] for i in np.argsort(sim)[-k:]] for sim in sims]
+Key Changes:
+Extract Embedding Vectors: all_vectors is a 2D array where each row corresponds to the embedding of a word in embeddings.
+Cosine Similarity: We call cosine_sim(all_vectors, vectors) to compute the similarities between each input vector (vectors) and all the word vectors (all_vectors).
+Return Top k Words: We find the k words with the highest cosine similarities for each input vector and return them.
+This change ensures that you're working with the vectors from the embeddings dictionary (instead of passing the dictionary itself), which is necessary for cosine similarity calculation.
+
+Let me know if this helps or if you need further clarifications!
+
+
+
+
+
+
+You said:
+embeddings object has no attribute keys
+ here is embeddings.py
+"""
+Code for Problem 1 of HW 1.
+"""
+from typing import Iterable
+
+import numpy as np
+
+
+class Embeddings:
+    """
+    Problem 1b: Complete the implementation of this class based on the
+    docstrings and the usage examples in the problem set.
+
+    This class represents a container that holds a collection of words
+    and their corresponding word embeddings.
+    """
+
+    def __init__(self, words: Iterable[str], vectors: np.ndarray):
+        """
+        Initializes an Embeddings object directly from a list of words
+        and their embeddings.
+
+        :param words: A list of words
+        :param vectors: A 2D array of shape (len(words), embedding_size)
+            where for each i, vectors[i] is the embedding for words[i]
+        """
+        self.words = list(words)
+        self.indices = {w: i for i, w in enumerate(words)}
+        self.vectors = vectors
+
+    def __len__(self):
+        return len(self.words)
+
+    def __contains__(self, word: str) -> bool:
+        return word in self.words
+
+    def __getitem__(self, words: Iterable[str]) -> np.ndarray:
+        """
+        Retrieves embeddings for a list of words.
+
+        :param words: A list of words
+        :return: A 2D array of shape (len(words), embedding_size) where
+            for each i, the ith row is the embedding for words[i]
+        """
+        return np.array([self.vectors[self.indices[word]] for word in words])
+
+    @classmethod
+    def from_file(cls, filename: str) -> "Embeddings":
+        """
+        Initializes an Embeddings object from a .txt file containing
+        word embeddings in GloVe format.
+
+        :param filename: The name of the file containing the embeddings
+        :return: An Embeddings object containing the loaded embeddings
+        """
+        with open(filename, "r") as file:
+            words, vectors = zip(*[(line.split()[0], np.fromstring(" ".join(line.split()[1:]), dtype=float, sep=" ")) for line in file])
+        return cls(words, np.array(vectors))
+
+
+2/2
+
+ChatGPT said:
+The issue arises because the Embeddings class does not have a keys() method. Instead, it stores the words in the words attribute, and the indices dictionary maps each word to its index. To fix this, you need to modify the code in get_closest_words to use the self.words attribute when referencing the words in the embeddings.
+
+Here’s how you can modify your get_closest_words function to work with this Embeddings class:
+
+Modified get_closest_words:
+python
+Copy code
+def get_closest_words(embeddings: Embeddings, vectors: np.ndarray, k: int = 1) -> List[List[str]]:
+    """
+    Finds the top k words whose embeddings are closest to a given vector in terms of cosine similarity.
+
+    :param embeddings: A set of word embeddings
+    :param vectors: A 2D array of shape (m, embedding_size)
+    :param k: The number of closest words to find for each vector
+    :return: A list of m lists of words, where the ith list contains the
+        k words that are closest to vectors[i] in the embedding space,
+        not necessarily in order
+    """
+    # Extract all embeddings as a 2D array
+    all_vectors = embeddings.vectors
+    
+    # Compute cosine similarity between the input vectors and all embeddings
+    sims = cosine_sim(all_vectors, vectors)
+    
+    # Get the top k closest words for each input vector
+    return [[embeddings.words[i] for i in np.argsort(sim)[-k:]] for sim in sims]
+Key Changes:
+embeddings.words: Instead of using embeddings.keys(), which doesn't exist, we use embeddings.words to get the list of all words in the embedding object.
+embeddings.vectors: This is the matrix of all word embeddings, which is used in cosine_sim for computing similarities.
+This should now work without issues because words is directly available as an attribute in the Embeddings class.
+
+Example Usage:
+python
+Copy code
+try:  # Load embeddings if they haven't been loaded yet
+    embeddings
+except NameError:
+    embeddings = Embeddings.from_file("word_embeddings/glove_50d.txt")
+
+# Find the neighbors of "king," "man," and "woman"
+vecs = embeddings[["king", "man", "woman"]]
+get_closest_words(embeddings, vecs, k=4)
+This code should now correctly fetch the closest words to the given vectors. Let me know if you encounter further issues!
+
+B
+help me. debug
+instructions:
+Next, please implement the function get_closest_words. This function finds the k closest words to one or more given vector(s) in the embedding space. The given vectors do not have to be valid word embeddings (though they do need to have the same dimension as the word embeddings), and the k closest words do not have to be in order.
+For example, this is how you would find the 4 nearest neighbors of king, man, and woman in the embedding space. (Note that each word is one of its own 4 nearest neighbors.)
+In [11]:
+
+
+Copy
+try:  # Load embeddings if they haven't been loaded yet
+    embeddings
+except NameError:
+    embeddings = Embeddings.from_file("word_embeddings/glove_50d.txt")
+    
+# Find the neighbors of "king," "man," and "woman"
+vecs = embeddings["king", "man", "woman"]
+get_closest_words(embeddings, vecs, k=4)
+desired Output[11]:
+
+
+Copy
+[['ii', 'king', 'queen', 'prince'],
+ ['man', 'woman', 'boy', 'another'],
+ ['woman', 'girl', 'man', 'mother']]
+The output above is interpreted as follows:
+* the 4 nearest neighbors of king are ii, king, queen, and prince
+* the 4 nearest neighbors of man are man, woman, boy, and another
+* the 4 nearest neighbors of woman are woman, girl, man, and mother.
+
+my output after running:
+[['.', 'the', ','], ['the', '.', ','], ['the', '.', ','], ['.', 'the', ','], ['.', 'the', ','], ['the', '.', ','],
+
+my code:
+"""
+Code for Problems 2 and 3 of HW 1.
+"""
+from typing import Dict, List, Tuple
+
+import numpy as np
+
+from embeddings import Embeddings
+
+def cosine_sim(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """
+    Problem 3b: Implement this function.
+
+    Computes the cosine similarity between two matrices of row vectors.
+
+    :param x: A 2D array of shape (m, embedding_size)
+    :param y: A 2D array of shape (n, embedding_size)
+    :return: An array of shape (m, n), where the entry in row i and
+        column j is the cosine similarity between x[i] and y[j]
+    """
+    dot_prod = np.dot(x, y.T)
+    norm_x = np.linalg.norm(x, axis = 1, keepdims = True)
+    norm_y = np.linalg.norm(y, axis = 1, keepdims = True)
+    cos_sim = dot_prod / (norm_x @ norm_y.T)
+    return cos_sim
+
+def get_closest_words(embeddings: Embeddings, vectors: np.ndarray,
+                      k: int = 1) -> List[List[str]]:
+    """
+    Problem 3c: Implement this function.
+
+    Finds the top k words whose embeddings are closest to a given vector
+    in terms of cosine similarity.
+
+    :param embeddings: A set of word embeddings
+    :param vectors: A 2D array of shape (m, embedding_size)
+    :param k: The number of closest words to find for each vector
+    :return: A list of m lists of words, where the ith list contains the
+        k words that are closest to vectors[i] in the embedding space,
+        not necessarily in order
+    """
+    all_vec = embeddings.vectors
+    sims = cosine_sim(all_vec, vectors)
+    return [[embeddings.words[i] for i in np.argsort(sim)[-k:]] for sim in sims]
+
+# This type alias represents the format that the testing data should be
+# deserialized into. An analogy is a tuple of 4 strings, and an
+# AnalogiesDataset is a dict that maps a relation type to the list of
+# analogies under that relation type.
+AnalogiesDataset = Dict[str, List[Tuple[str, str, str, str]]]
+
+def load_analogies(filename: str) -> AnalogiesDataset:
+    """
+    Problem 2b: Implement this function.
+
+    Loads testing data for 3CosAdd from a .txt file and deserializes it
+    into the AnalogiesData format.
+
+    :param filename: The name of the file containing the testing data
+    :return: An AnalogiesDataset containing the data in the file. The
+        format of the data is described in the problem set and in the
+        docstring for the AnalogiesDataset type alias
+    """
+    analogies = {}
+    current_analogy_type = None
+    with open(filename, "r") as file:
+        for line in file:
+            line = line.strip().lower()
+            if line.startswith(":"):
+                current_analogy_type = line[1:].strip()
+                analogies[current_analogy_type] = []
+            elif line:
+                words = line.split()
+                if len(words) == 4 and current_analogy_type:
+                    analogies[current_analogy_type].append(tuple(words))
+    return analogies
+
+def run_analogy_test(embeddings: Embeddings, test_data: AnalogiesDataset,
+                     k: int = 1) -> Dict[str, float]:
+    """
+    Problem 3d: Implement this function.
+
+    Runs the 3CosAdd test for a set of embeddings and analogy questions.
+
+    :param embeddings: The embeddings to be evaluated using 3CosAdd
+    :param test_data: The set of analogies with which to compute analogy
+        question accuracy
+    :param k: The "lenience" with which accuracy will be computed. An
+        analogy question will be considered to have been answered
+        correctly as long as the target word is within the top k closest
+        words to the target vector, even if it is not the closest word
+    :return: The results of the 3CosAdd test, in the format of a dict
+        that maps each relation type to the analogy question accuracy
+        attained by embeddings on analogies from that relation type
+    """
+    raise NotImplementedError("Problem 3d has not been completed yet!")
+
+embeddings class file
+"""
+Code for Problem 1 of HW 1.
+"""
+from typing import Iterable
+
+import numpy as np
+
+class Embeddings:
+    """
+    Problem 1b: Complete the implementation of this class based on the
+    docstrings and the usage examples in the problem set.
+
+    This class represents a container that holds a collection of words
+    and their corresponding word embeddings.
+    """
+
+    def init(self, words: Iterable[str], vectors: np.ndarray):
+        """
+        Initializes an Embeddings object directly from a list of words
+        and their embeddings.
+
+        :param words: A list of words
+        :param vectors: A 2D array of shape (len(words), embedding_size)
+            where for each i, vectors[i] is the embedding for words[i]
+        """
+        self.words = list(words)
+        self.indices = {w: i for i, w in enumerate(words)}
+        self.vectors = vectors
+
+    def len(self):
+        return len(self.words)
+
+    def contains(self, word: str) -> bool:
+        return word in self.words
+
+    def getitem(self, words: Iterable[str]) -> np.ndarray:
+        """
+        Retrieves embeddings for a list of words.
+
+        :param words: A list of words
+        :return: A 2D array of shape (len(words), embedding_size) where
+            for each i, the ith row is the embedding for words[i]
+        """
+        return np.array([self.vectors[self.indices[word]] for word in words])
+
+    @classmethod
+    def from_file(cls, filename: str) -> "Embeddings":
+        """
+        Initializes an Embeddings object from a .txt file containing
+        word embeddings in GloVe format.
+
+        :param filename: The name of the file containing the embeddings
+        :return: An Embeddings object containing the loaded embeddings
+        """
+        with open(filename, "r") as file:
+            words, vectors = zip(*[(line.split()[0], np.fromstring(" ".join(line.split()[1:]), dtype=float, sep=" ")) for line in file])
+        return cls(words, np.array(vectors))
+
+Edit
+Let me help debug your implementation of get_closest_words. I notice that your output shows incorrect results - you're getting punctuation marks instead of semantically similar words. Let's analyze the issue:
+
+The main problem is in your get_closest_words implementation. The current code is:
+
+python
+
+Copy
+def get_closest_words(embeddings: Embeddings, vectors: np.ndarray,
+                      k: int = 1) -> List[List[str]]:
+    all_vec = embeddings.vectors
+    sims = cosine_sim(all_vec, vectors)
+    return [[embeddings.words[i] for i in np.argsort(sim)[-k:]] for sim in sims]
+There are two key issues:
+
+You're computing similarities with cosine_sim(all_vec, vectors) which has the arguments in the wrong order. This means you're getting similarities between each word in the vocabulary and each input vector, but transposed from what we want.
+You're iterating over sims which gives you similarities for each word in the vocabulary, rather than for each input vector.
+Here's the corrected implementation:
+
+python
+
+Copy
+def get_closest_words(embeddings: Embeddings, vectors: np.ndarray,
+                      k: int = 1) -> List[List[str]]:
+    """
+    Finds the top k words whose embeddings are closest to a given vector
+    in terms of cosine similarity.
+
+    :param embeddings: A set of word embeddings
+    :param vectors: A 2D array of shape (m, embedding_size)
+    :param k: The number of closest words to find for each vector
+    :return: A list of m lists of words, where the ith list contains the
+        k words that are closest to vectors[i] in the embedding space,
+        not necessarily in order
+    """
+    # Compute similarities between each input vector and all word vectors
+    sims = cosine_sim(vectors, embeddings.vectors)
+    
+    # For each input vector, get the k words with highest similarity
+    result = []
+    for sim in sims:
+        # Get indices of k highest similarity scores
+        top_k_indices = np.argsort(sim)[-k:]
+        # Convert indices to words
+        closest_words = [embeddings.words[i] for i in top_k_indices]
+        result.append(closest_words)
+    
+    return result
+Key changes:
+
+Fixed the order of arguments in cosine_sim(vectors, embeddings.vectors)
+Process each row of similarities separately to get the k closest words for each input vector
+Made the code more readable by breaking down the steps
+Your cosine_sim implementation looks correct, so that wasn't the source of the problem.
+
+Try running your code with this corrected implementation. You should now get results similar to the example output, where semantically similar words are returned. For example, with the input words "king", "man", and "woman", you should get lists of words that are semantically related to each input word rather than just punctuation marks.
+
+Would you like me to explain any part of the correction in more detail?
+
+
+
+
+Retry
+
+B
+how can i reduce your implementation to be 3 lines or less for everything that comes after not necessarily in order """
+
+Edit
+I can help condense the implementation while maintaining the same functionality. Here's the same logic compressed into 3 lines:
+
+python
+
+Copy
+def get_closest_words(embeddings: Embeddings, vectors: np.ndarray,
+                      k: int = 1) -> List[List[str]]:
+    """
+    Finds the top k words whose embeddings are closest to a given vector
+    in terms of cosine similarity.
+
+    :param embeddings: A set of word embeddings
+    :param vectors: A 2D array of shape (m, embedding_size)
+    :param k: The number of closest words to find for each vector
+    :return: A list of m lists of words, where the ith list contains the
+        k words that are closest to vectors[i] in the embedding space,
+        not necessarily in order
+    """
+    sims = cosine_sim(vectors, embeddings.vectors)
+    top_k_indices = [np.argsort(sim)[-k:] for sim in sims]
+    return [[embeddings.words[i] for i in indices] for indices in top_k_indices]
+This achieves exactly the same result but uses:
+
+List comprehension to get the top k indices for each similarity row
+Nested list comprehension to convert indices to words
+No intermediate variables beyond what's absolutely necessary
+The logic is identical to the longer version, just more concisely expressed.
+
+
+
+
+Retry
+
+B
+now, help me complete run_analogy_test in a max of 9 lines
+
+Edit
+
+2 / 2
+
+I'll help you implement run_analogy_test efficiently in 9 lines or less. This function needs to implement the 3CosAdd method for analogy testing, where for each analogy a:b::c:d, we try to find d by calculating a vector that should be close to b - a + c.
+
+python
+
+Copy
+def run_analogy_test(embeddings: Embeddings, test_data: AnalogiesDataset,
+                     k: int = 1) -> Dict[str, float]:
+    results = {}
+    for relation_type, analogies in test_data.items():
+        correct = 0
+        for a, b, c, d in analogies:
+            if not all(word in embeddings for word in [a, b, c, d]): continue
+            target_vec = embeddings[b] - embeddings[a] + embeddings[c]
+            closest_words = get_closest_words(embeddings, target_vec.reshape(1, -1), k)[0]
+            correct += d in closest_words
+        results[relation_type] = correct / len(analogies) if analogies else 0
+    return results
+Here's what each line does:
+
+Creates empty results dictionary
+Iterates through each relation type and its analogies
+Initializes correct count for current relation type
+Iterates through each analogy tuple (a:b::c:d)
+Skips analogy if any word isn't in embeddings
+Computes the target vector using 3CosAdd formula (b - a + c)
+Gets k closest words to target vector (reshaping to 2D for get_closest_words)
+Increments correct count if target word d is in closest words
+Stores accuracy for current relation type and returns results
+This implementation:
+
+Handles missing words by skipping analogies with out-of-vocabulary words
+Uses the 3CosAdd method to predict the fourth word
+Considers a prediction correct if the target word is among the k closest words
+Returns a dictionary mapping relation types to their accuracies
+
+
+
+Retry
+
+B
+# Run the analogy test
+run_analogy_test(embeddings, test_data, k=1)
+---------------------------------------------------------------------------
+KeyError                                  Traceback (most recent call last)
+Cell In[17], line 2
+      1 # Run the analogy test
+----> 2 run_analogy_test(embeddings, test_data, k=1)
+File ~/Documents/github/nlu_s25/hw1/test_analogies.py:107, in run_analogy_test(embeddings, test_data, k)
+    105 correct = 0
+    106 for a, b, c, d in analogies:
+--> 107     target_vec = embeddings[b] - embeddings[a] + embeddings[c]
+    108     closest_words = get_closest_words(embeddings, target_vec.reshape(1, -1), k)[0]
+    109     correct += d in closest_words
+File ~/Documents/github/nlu_s25/hw1/embeddings.py:45, in Embeddings.getitem(self, words)
+     37 def getitem(self, words: Iterable[str]) -> np.ndarray:
+     38     """
+     39     Retrieves embeddings for a list of words.
+     40 
+   (...)
+     43         for each i, the ith row is the embedding for words[i]
+     44     """
+---> 45     return np.array([self.vectors[self.indices[word]] for word in words])
+KeyError: 'h'
+
+Edit
+I see the error - we're getting a KeyError when trying to access word embeddings, specifically for the character 'h'. This suggests that some words in the test data aren't properly processed or are missing from our embeddings. Let's modify the run_analogy_test function to handle word access more safely:
+
+python
+
+Copy
+def run_analogy_test(embeddings: Embeddings, test_data: AnalogiesDataset,
+                     k: int = 1) -> Dict[str, float]:
+    results = {}
+    for relation_type, analogies in test_data.items():
+        total = 0
+        correct = 0
+        for a, b, c, d in analogies:
+            if not all(w.lower() in embeddings for w in [a, b, c, d]): continue
+            target_vec = embeddings[b.lower()] - embeddings[a.lower()] + embeddings[c.lower()]
+            closest_words = get_closest_words(embeddings, target_vec.reshape(1, -1), k)[0]
+            total += 1
+            correct += d.lower() in closest_words
+        results[relation_type] = correct / total if total > 0 else 0
+    return results
+Key changes made:
+
+Added .lower() to all word lookups since embeddings are typically lowercase
+Added a separate total counter to handle cases where we skip analogies
+Changed the denominator to use total instead of len(analogies)
+Added a check for total > 0 to avoid division by zero
+The error occurred because some words in the test data might be:
+
+In different case (uppercase vs lowercase)
+Containing special characters or whitespace
+Not present in the embeddings vocabulary
+Try running it again with these changes. If you're still getting errors, could you show me a sample of the test data you're using? That would help identify if there are any other formatting issues we need to handle.
+
+
+
+
+Retry
+
+Claude can make mistakes.
+Please double-check responses.
+
+
+
+No file chosen
+
+
+3.5 Sonnet
+
+Choose style
+Chat controls
+
+3.5 Sonnet
+Most intelligent model Learn more
+
+Content
+No content added yet
+Add images, PDFs, docs, spreadsheets, and more to summarize, analyze, and query content with Claude.
+Chat styles
+Font
+
+Default
+Debugging Word Embedding Similarity Search - Claude
+
+
+""" Code for Problems 2 and 3 of HW 1. """ from typing import Dict, List, Tuple import numpy as np from embeddings import Embeddings def cosine_sim(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+pasted
+B
+Hints: 
+* __getitem__ can be implemented using at most 1 line of code.
+* from_file can be implemented using at most 4 lines of code.
+* Some of the above functionalities are already implemented in the starter code.
+* Consider using the [np.fromstring function in NumPy](https://numpy.org/doc/stable/reference/generated/numpy.fromstring.html).
+* Please consult one or more of the following resources if you are confused by the Python terminology in this problem: 
+ * [Official Python Tutorial on Classes](https://docs.python.org/3/tutorial/classes.html)
+ * [RealPython Tutorial on Object-Oriented Programming](https://realpython.com/python3-object-oriented-programming)
+ * [RealPython Tutorial on Instance, Class, and Static Methods](https://realpython.com/instance-class-and-static-methods-demystified/)
+### Problem 1c: Extra Credit (Written, 5 Points)
+Look at the following two lines of code. The first line of code prints the word embeddings $\overrightarrow{\text{the}}$ and $\overrightarrow{\text{of}}$. The second line of code looks similar to the first line of code, but it does not work as intended. Why is this? 
+Note: Depending on how you've implemented the two blank methods in Embeddings, it's possible that your code may not behave as shown below. If that's the case, what do you think is the difference between your code and our code that would result in this discrepancy? 
+(Regardless of what happens with the code below, you will receive full credit for Problem 1b as long as all the functional requirements shown above are implemented correctly.)
+# This line of code works:
+print(embeddings["the", "of"])
+
+# This line of code doesn't work:
+print(embeddings["the"])
+
+output: [[ 4.1800e-01  2.4968e-01 -4.1242e-01  1.2170e-01  3.4527e-01 -4.4457e-02
+  -4.9688e-01 -1.7862e-01 -6.6023e-04 -6.5660e-01  2.7843e-01 -1.4767e-01
+  -5.5677e-01  1.4658e-01 -9.5095e-03  1.1658e-02  1.0204e-01 -1.2792e-01
+  -8.4430e-01 -1.2181e-01 -1.6801e-02 -3.3279e-01 -1.5520e-01 -2.3131e-01
+  -1.9181e-01 -1.8823e+00 -7.6746e-01  9.9051e-02 -4.2125e-01 -1.9526e-01
+   4.0071e+00 -1.8594e-01 -5.2287e-01 -3.1681e-01  5.9213e-04  7.4449e-03
+   1.7778e-01 -1.5897e-01  1.2041e-02 -5.4223e-02 -2.9871e-01 -1.5749e-01
+  -3.4758e-01 -4.5637e-02 -4.4251e-01  1.8785e-01  2.7849e-03 -1.8411e-01
+  -1.1514e-01 -7.8581e-01]
+ [ 7.0853e-01  5.7088e-01 -4.7160e-01  1.8048e-01  5.4449e-01  7.2603e-01
+   1.8157e-01 -5.2393e-01  1.0381e-01 -1.7566e-01  7.8852e-02 -3.6216e-01
+  -1.1829e-01 -8.3336e-01  1.1917e-01 -1.6605e-01  6.1555e-02 -1.2719e-02
+  -5.6623e-01  1.3616e-02  2.2851e-01 -1.4396e-01 -6.7549e-02 -3.8157e-01
+  -2.3698e-01 -1.7037e+00 -8.6692e-01 -2.6704e-01 -2.5890e-01  1.7670e-01
+   3.8676e+00 -1.6130e-01 -1.3273e-01 -6.8881e-01  1.8444e-01  5.2464e-03
+  -3.3874e-01 -7.8956e-02  2.4185e-01  3.6576e-01 -3.4727e-01  2.8483e-01
+   7.5693e-02 -6.2178e-02 -3.8988e-01  2.2902e-01 -2.1617e-01 -2.2562e-01
+  -9.3918e-02 -8.0375e-01]]
+embeddings class file:
+"""
+Code for Problem 1 of HW 1.
+"""
+from typing import Iterable
+
+import numpy as np
+
+class Embeddings:
+    """
+    Problem 1b: Complete the implementation of this class based on the
+    docstrings and the usage examples in the problem set.
+
+    This class represents a container that holds a collection of words
+    and their corresponding word embeddings.
+    """
+
+    def init(self, words: Iterable[str], vectors: np.ndarray):
+        """
+        Initializes an Embeddings object directly from a list of words
+        and their embeddings.
+
+        :param words: A list of words
+        :param vectors: A 2D array of shape (len(words), embedding_size)
+            where for each i, vectors[i] is the embedding for words[i]
+        """
+        self.words = list(words)
+        self.indices = {w: i for i, w in enumerate(words)}
+        self.vectors = vectors
+
+    def len(self):
+        return len(self.words)
+
+    def contains(self, word: str) -> bool:
+        return word in self.words
+
+    def getitem(self, words: Iterable[str]) -> np.ndarray:
+        """
+        Retrieves embeddings for a list of words.
+
+        :param words: A list of words
+        :return: A 2D array of shape (len(words), embedding_size) where
+            for each i, the ith row is the embedding for words[i]
+        """
+        return np.array([self.vectors[self.indices[word]] for word in words])
+
+    @classmethod
+    def from_file(cls, filename: str) -> "Embeddings":
+        """
+        Initializes an Embeddings object from a .txt file containing
+        word embeddings in GloVe format.
+
+        :param filename: The name of the file containing the embeddings
+        :return: An Embeddings object containing the loaded embeddings
+        """
+        with open(filename, "r") as file:
+            words, vectors = zip(*[(line.split()[0], np.fromstring(" ".join(line.split()[1:]), dtype=float, sep=" ")) for line in file])
+        return cls(words, np.array(vectors))
+
+Edit
+Let me help explain why the second line of code doesn't work. This is a great question about Python's handling of string inputs versus iterables in custom classes.
+
+The key difference lies in how Python handles single strings versus collections of strings when passed as arguments:
+
+In embeddings["the", "of"]:
+Python treats this as a tuple of two strings
+This is an iterable, so it works with the __getitem__ implementation which expects an Iterable[str]
+In embeddings["the"]:
+Python treats this as a single string, not an iterable of strings
+The __getitem__ method expects an Iterable[str], but is receiving just str
+A string is technically iterable (over its characters), but that's not what we want here
+To fix this, you would need to modify the __getitem__ implementation to handle both cases. Here are two possible approaches:
+
+Force single strings into a list/tuple:
+python
+
+Copy
+def __getitem__(self, words: Iterable[str]) -> np.ndarray:
+    if isinstance(words, str):
+        words = [words]
+    return np.array([self.vectors[self.indices[word]] for word in words])
+Use method overloading to handle both cases:
+python
+
+Copy
+def __getitem__(self, words):
+    if isinstance(words, str):
+        return self.vectors[self.indices[words]]
+    return np.array([self.vectors[self.indices[word]] for word in words])
+This is a common gotcha when implementing custom container classes in Python - you need to decide how to handle both single items and collections of items in methods like __getitem__.
+
+
+
+
+Retry
+
+Claude can make mistakes.
+Please double-check responses.
+
+
+
+No file chosen
+
+
+3.5 Sonnet
+
+Choose style
+Chat controls
+
+3.5 Sonnet
+Most intelligent model Learn more
+
+Content
+
+Pasted content
+4.18 KB •112 lines
+Chat styles
+Font
+
+Default
+Implementing __getitem__ and from_file in Python - Claude

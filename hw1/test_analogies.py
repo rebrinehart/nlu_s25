@@ -100,4 +100,12 @@ def run_analogy_test(embeddings: Embeddings, test_data: AnalogiesDataset,
         that maps each relation type to the analogy question accuracy
         attained by embeddings on analogies from that relation type
     """
-    raise NotImplementedError("Problem 3d has not been completed yet!")
+    results = {}
+    for relation_type, analogies in test_data.items():
+        correct = 0
+        for a, b, c, d in analogies:
+            target_vec = embeddings[b] - embeddings[a] + embeddings[c]
+            closest_words = get_closest_words(embeddings, target_vec.reshape(1, -1), k)[0]
+            correct += d in closest_words
+        results[relation_type] = correct / len(analogies) if analogies else 0
+    return results
