@@ -43,7 +43,6 @@ class Embeddings:
             for each i, the ith row is the embedding for words[i]
         """
         return np.array([self.vector[word] for word in words])
-        raise NotImplementedError("Problem 1b has not been completed yet!")
 
     @classmethod
     def from_file(cls, filename: str) -> "Embeddings":
@@ -58,4 +57,3 @@ class Embeddings:
             words, vectors = zip(*[(line.split()[0], np.fromstring(" ".join(line.split()[1:]), dtype=float, sep=" ")) for line in file])
         return cls(words, np.array(vectors))
 
-        raise NotImplementedError("Problem 1b has not been completed yet!")
