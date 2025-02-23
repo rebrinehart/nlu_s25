@@ -63,7 +63,7 @@ def load_analogies(filename: str) -> AnalogiesDataset:
     current_analogy_type = None
     with open(filename, "r") as file:
         for line in file:
-            line = line.strip()
+            line = line.strip().lower()
             if line.startswith(":"):
                 current_analogy_type = line[1:].strip()
                 analogies[current_analogy_type] = []
