@@ -42,6 +42,7 @@ class Embeddings:
         :return: A 2D array of shape (len(words), embedding_size) where
             for each i, the ith row is the embedding for words[i]
         """
+        return np.array([self.vector[word] for word in words])
         raise NotImplementedError("Problem 1b has not been completed yet!")
 
     @classmethod
@@ -53,4 +54,8 @@ class Embeddings:
         :param filename: The name of the file containing the embeddings
         :return: An Embeddings object containing the loaded embeddings
         """
+        with open(filename, "r") as file:
+            words, vectors = zip(*[(line.split()[0], np.fromstring(" ".join(line.split()[1:]), dtype=float, sep=" ")) for line in file])
+        return cls(words, np.array(vectors))
+
         raise NotImplementedError("Problem 1b has not been completed yet!")
