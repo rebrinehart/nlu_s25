@@ -42,7 +42,7 @@ class Embeddings:
         :return: A 2D array of shape (len(words), embedding_size) where
             for each i, the ith row is the embedding for words[i]
         """
-        return np.array([self.vector[word] for word in words])
+        return np.array([self.vectors[self.indices[word]] for word in words])
 
     @classmethod
     def from_file(cls, filename: str) -> "Embeddings":
