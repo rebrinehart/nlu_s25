@@ -19,7 +19,12 @@ def cosine_sim(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     :return: An array of shape (m, n), where the entry in row i and
         column j is the cosine similarity between x[i] and y[j]
     """
-    raise NotImplementedError("Problem 3b has not been completed yet!")
+    dot_prod = np.dot(x, y.T)
+    norm_x = np.linalg.norm(x, axis = 1, keepdims = True)
+    norm_y = np.linalg.norm(y, axis = 1, keepdims = True)
+    cos_sim = dot_prod / (norm_x @ norm_y.T)
+    return cos_sim
+
 
 
 def get_closest_words(embeddings: Embeddings, vectors: np.ndarray,
