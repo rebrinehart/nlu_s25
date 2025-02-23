@@ -59,8 +59,20 @@ def load_analogies(filename: str) -> AnalogiesDataset:
         format of the data is described in the problem set and in the
         docstring for the AnalogiesDataset type alias
     """
-    raise NotImplementedError("Problem 2b has not been completed yet!")
-
+    analogies = {}
+    current_analogy_type = None
+    with open(filename, "r") as file:
+        for line in file:
+            line = line.strip()
+            if line.startswith(":"):
+                current_analogy_type = line[1:].strip()
+                analogies[current_analogy_type] = []
+            elif line:
+                words = line.split()
+                if len(words) == 4 and current_analogy_type:
+                    analogies[current_analogy_type].append(tuple(words))
+    return analogies
+        
 
 def run_analogy_test(embeddings: Embeddings, test_data: AnalogiesDataset,
                      k: int = 1) -> Dict[str, float]:
