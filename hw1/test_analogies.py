@@ -102,12 +102,18 @@ def run_analogy_test(embeddings: Embeddings, test_data: AnalogiesDataset,
     """
     results = {}
     for relation_type, analogies in test_data.items():
+        # creating a try and except to print the analgoy type if there is a key error
         total = len(analogies)
         correct = 0
         for a, b, c, d in analogies:
-            if not all(word in embeddings for word in [a, b, c, d]): continue
-            target_vec = embeddings[b] - embeddings[a] + embeddings[c]
+            # try:
+            #     if not all(word in embeddings for word in [a, b, c, d]): 
+            #         print(word for word in [a, b, c, d] if word not in embeddings)
+            #         continue
+            target_vec = embeddings[[b]] - embeddings[[a]] + embeddings[[c]]
             closest_words = get_closest_words(embeddings, target_vec.reshape(1, -1), k)[0]
             correct += d in closest_words
+            # except:
+            #     print(f"Error with analogies {a,b,c,d}")
         results[relation_type] = correct / total if total > 0 else 0
     return results
