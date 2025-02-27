@@ -927,3 +927,547 @@ Font
 
 Default
 Implementing __getitem__ and from_file in Python - Claude
+
+No title
+________
+
+Human: def run_analogy_test(embeddings: Embeddings, test_data: AnalogiesDataset,
+                     k: int = 1) -> Dict[str, float]:
+    """
+    Problem 3d: Implement this function.
+
+    Runs the 3CosAdd test for a set of embeddings and analogy questions.
+
+    :param embeddings: The embeddings to be evaluated using 3CosAdd
+    :param test_data: The set of analogies with which to compute analogy
+        question accuracy
+    :param k: The "lenience" with which accuracy will be computed. An
+        analogy question will be considered to have been answered
+        correctly as long as the target word is within the top k closest
+        words to the target vector, even if it is not the closest word
+    :return: The results of the 3CosAdd test, in the format of a dict
+        that maps each relation type to the analogy question accuracy
+        attained by embeddings on analogies from that relation type
+    """
+    results = {}
+    for relation_type, analogies in test_data.items():
+        total = len(analogies)
+        correct = 0
+        for a, b, c, d in analogies:
+            if not all(word in embeddings for word in [a, b, c, d]): continue
+            target_vec = embeddings[b] - embeddings[a] + embeddings[c]
+            closest_words = get_closest_words(embeddings, target_vec.reshape(1, -1), k)[0]
+            correct += d in closest_words
+        results[relation_type] = correct / total if total > 0 else 0
+    return results
+
+When I run unknown test cases, I get KeyError with print statement 'c'. Please help me understand why this is happening and how to debug.
+Human: def run_analogy_test(embeddings: Embeddings, test_data: AnalogiesDataset,
+                     k: int = 1) -> Dict[str, float]:
+    """
+    Problem 3d: Implement this function.
+
+    Runs the 3CosAdd test for a set of embeddings and analogy questions.
+
+    :param embeddings: The embeddings to be evaluated using 3CosAdd
+    :param test_data: The set of analogies with which to compute analogy
+        question accuracy
+    :param k: The "lenience" with which accuracy will be computed. An
+        analogy question will be considered to have been answered
+        correctly as long as the target word is within the top k closest
+        words to the target vector, even if it is not the closest word
+    :return: The results of the 3CosAdd test, in the format of a dict
+        that maps each relation type to the analogy question accuracy
+        attained by embeddings on analogies from that relation type
+    """
+    results = {}
+    for relation_type, analogies in test_data.items():
+        total = len(analogies)
+        correct = 0
+        for a, b, c, d in analogies:
+            if not all(word in embeddings for word in [a, b, c, d]): continue
+            target_vec = embeddings[b] - embeddings[a] + embeddings[c]
+            closest_words = get_closest_words(embeddings, target_vec.reshape(1, -1), k)[0]
+            correct += d in closest_words
+        results[relation_type] = correct / total if total > 0 else 0
+    return results
+
+When I run unknown test cases, I get KeyError with print statement 'c'. Please help me understand why this is happening and how to debug.
+ChatGPT: It looks like you're encountering a KeyError on 'c', meaning that the word c is missing from embeddings. The issue likely arises from this line in your loop:pythonCopyEditif not all(word in embeddings for word in [a, b, c, d]): continue
+This checks whether all four words (a, b, c, and d) are in embeddings, and if any are missing, it skips the current analogy. However, there could be a mistake in how embeddings is structured or how words are stored.Debugging StepsPrint the missing wordsModify your check to explicitly print which words are missing:pythonCopyEditfor a, b, c, d in analogies:
+    missing_words = [word for word in [a, b, c, d] if word not in embeddings]
+    if missing_words:
+        print(f"Missing words: {missing_words}")
+        continue
+This will help you confirm whether c is actually missing.Check Embedding KeysSometimes, words may have unexpected casing or whitespace issues. Try printing a few keys from embeddings:pythonCopyEditprint("Sample embedding keys:", list(embeddings.keys())[:10])
+If your embeddings contain words like "king " instead of "king", you'll need to strip whitespace.Normalize Word CasesIf your dataset contains mixed-case words, ensure consistency:pythonCopyEdita, b, c, d = a.lower(), b.lower(), c.lower(), d.lower()
+If your embeddings use lowercase words, this prevents mismatches.Check Data FormattingEnsure that test_data follows the expected format. Try printing an example:pythonCopyEditprint("Example analogy:", next(iter(test_data.values()))[:5])
+If words aren't in the expected format, you may need preprocessing.Final FixOnce you've identified the cause, consider modifying your check:pythonCopyEditif any(word not in embeddings for word in [a, b, c, d]):
+    print(f"Skipping due to missing words: {a, b, c, d}")
+    continue
+Let me know what you find!
+ChatGPT: It looks like you're encountering a KeyError on 'c', meaning that the word c is missing from embeddings. The issue likely arises from this line in your loop:pythonCopyEditif not all(word in embeddings for word in [a, b, c, d]): continue
+This checks whether all four words (a, b, c, and d) are in embeddings, and if any are missing, it skips the current analogy. However, there could be a mistake in how embeddings is structured or how words are stored.Debugging StepsPrint the missing wordsModify your check to explicitly print which words are missing:pythonCopyEditfor a, b, c, d in analogies:
+    missing_words = [word for word in [a, b, c, d] if word not in embeddings]
+    if missing_words:
+        print(f"Missing words: {missing_words}")
+        continue
+This will help you confirm whether c is actually missing.Check Embedding KeysSometimes, words may have unexpected casing or whitespace issues. Try printing a few keys from embeddings:pythonCopyEditprint("Sample embedding keys:", list(embeddings.keys())[:10])
+If your embeddings contain words like "king " instead of "king", you'll need to strip whitespace.Normalize Word CasesIf your dataset contains mixed-case words, ensure consistency:pythonCopyEdita, b, c, d = a.lower(), b.lower(), c.lower(), d.lower()
+If your embeddings use lowercase words, this prevents mismatches.Check Data FormattingEnsure that test_data follows the expected format. Try printing an example:pythonCopyEditprint("Example analogy:", next(iter(test_data.values()))[:5])
+If words aren't in the expected format, you may need preprocessing.Final FixOnce you've identified the cause, consider modifying your check:pythonCopyEditif any(word not in embeddings for word in [a, b, c, d]):
+    print(f"Skipping due to missing words: {a, b, c, d}")
+    continue
+Let me know what you find!
+Human:         return np.array([self.vectors[self.indices[word]] for word in words])
+Human:         return np.array([self.vectors[self.indices[word]] for word in words])
+ChatGPT: It looks like you're fetching word embeddings with this line:pythonCopyEditreturn np.array([self.vectors[self.indices[word]] for word in words])
+If you're getting a KeyError for 'c', that suggests 'c' isn't found in self.indices. Here’s how you can debug and fix this:Debugging StepsCheck if 'c' is in self.indices
+Before trying to access it, print whether it exists:pythonCopyEditfor word in words:
+    if word not in self.indices:
+        print(f"Missing word: {word}")
+If 'c' is missing, you’ll know that’s the issue.Check self.indices.keys()
+Print out some sample keys to see what’s in self.indices:pythonCopyEditprint("Sample keys:", list(self.indices.keys())[:10])
+If your dataset has formatting issues (e.g., different casing, extra spaces), you might need preprocessing.Ensure Consistent Word Formatting
+If words are stored in lowercase, apply .lower() before lookup:pythonCopyEditword = word.lower()
+Handle Missing Words Gracefully
+Modify the list comprehension to filter out missing words:pythonCopyEditreturn np.array([
+    self.vectors[self.indices[word]] for word in words if word in self.indices
+])
+Or, return a default vector (e.g., a zero vector):pythonCopyEditreturn np.array([
+    self.vectors[self.indices[word]] if word in self.indices else np.zeros(self.vectors.shape[1])
+    for word in words
+])
+ConclusionThe KeyError likely comes from 'c' being absent in self.indices. Debug by printing missing words and checking dataset consistency. Let me know what you find!
+ChatGPT: It looks like you're fetching word embeddings with this line:pythonCopyEditreturn np.array([self.vectors[self.indices[word]] for word in words])
+If you're getting a KeyError for 'c', that suggests 'c' isn't found in self.indices. Here’s how you can debug and fix this:Debugging StepsCheck if 'c' is in self.indices
+Before trying to access it, print whether it exists:pythonCopyEditfor word in words:
+    if word not in self.indices:
+        print(f"Missing word: {word}")
+If 'c' is missing, you’ll know that’s the issue.Check self.indices.keys()
+Print out some sample keys to see what’s in self.indices:pythonCopyEditprint("Sample keys:", list(self.indices.keys())[:10])
+If your dataset has formatting issues (e.g., different casing, extra spaces), you might need preprocessing.Ensure Consistent Word Formatting
+If words are stored in lowercase, apply .lower() before lookup:pythonCopyEditword = word.lower()
+Handle Missing Words Gracefully
+Modify the list comprehension to filter out missing words:pythonCopyEditreturn np.array([
+    self.vectors[self.indices[word]] for word in words if word in self.indices
+])
+Or, return a default vector (e.g., a zero vector):pythonCopyEditreturn np.array([
+    self.vectors[self.indices[word]] if word in self.indices else np.zeros(self.vectors.shape[1])
+    for word in words
+])
+ConclusionThe KeyError likely comes from 'c' being absent in self.indices. Debug by printing missing words and checking dataset consistency. Let me know what you find!
+Human:                 target_vec = embeddings[[b]] - embeddings[[a]] + embeddings[[c]]
+
+in this, what does double brackets do? why should i use double brackets over single brackets? this ended up being what fixed my issue
+
+Human:                 target_vec = embeddings[[b]] - embeddings[[a]] + embeddings[[c]]
+
+in this, what does double brackets do? why should i use double brackets over single brackets? this ended up being what fixed my issue
+
+ChatGPT: The double brackets ([[b]] instead of [b]) are used for indexing into a NumPy array while maintaining a 2D shape. Let's break it down:1. Single Brackets: embeddings[b]If embeddings is a dictionary or a NumPy array, then:embeddings[b] (single brackets) returns a 1D array (a vector of shape (d,), where d is the embedding dimension).This can cause shape mismatches when performing operations like broadcasting.2. Double Brackets: embeddings[[b]]embeddings[[b]] returns a 2D array of shape (1, d), preserving the batch dimension.This is useful for consistent matrix operations.Why Did This Fix Your Issue?Your function calls:pythonCopyEdittarget_vec = embeddings[[b]] - embeddings[[a]] + embeddings[[c]]
+likely fixed the error because get_closest_words() (or another function later in your pipeline) expected a 2D array, not a 1D vector.When to Use Double Brackets?Use embeddings[[b]] when:You need a 2D array (e.g., when passing to a function that expects batch input).You're using NumPy and want to perform row-based indexing.Use embeddings[b] when:You need a 1D vector.You're working with a dictionary where embeddings[b] retrieves a word vector directly.Let me know if you need more clarification!
+ChatGPT: The double brackets ([[b]] instead of [b]) are used for indexing into a NumPy array while maintaining a 2D shape. Let's break it down:1. Single Brackets: embeddings[b]If embeddings is a dictionary or a NumPy array, then:embeddings[b] (single brackets) returns a 1D array (a vector of shape (d,), where d is the embedding dimension).This can cause shape mismatches when performing operations like broadcasting.2. Double Brackets: embeddings[[b]]embeddings[[b]] returns a 2D array of shape (1, d), preserving the batch dimension.This is useful for consistent matrix operations.Why Did This Fix Your Issue?Your function calls:pythonCopyEdittarget_vec = embeddings[[b]] - embeddings[[a]] + embeddings[[c]]
+likely fixed the error because get_closest_words() (or another function later in your pipeline) expected a 2D array, not a 1D vector.When to Use Double Brackets?Use embeddings[[b]] when:You need a 2D array (e.g., when passing to a function that expects batch input).You're using NumPy and want to perform row-based indexing.Use embeddings[b] when:You need a 1D vector.You're working with a dictionary where embeddings[b] retrieves a word vector directly.Let me know if you need more clarification!
+Human: filter out dictionary using key values in a  list
+Human: filter out dictionary using key values in a  list
+ChatGPT: You can filter a dictionary based on a list of keys using a dictionary comprehension. Here’s how:Example: Keeping Only Specific KeysIf you want to keep only the keys in a given list:pythonCopyEditdata = {'a': 1, 'b': 2, 'c': 3, 'd': 4}
+keys_to_keep = ['a', 'c']
+
+filtered_dict = {key: data[key] for key in keys_to_keep if key in data}
+print(filtered_dict)  
+# Output: {'a': 1, 'c': 3}
+Example: Removing Specific KeysIf you want to remove keys in a given list:pythonCopyEditkeys_to_remove = ['b', 'd']
+
+filtered_dict = {key: value for key, value in data.items() if key not in keys_to_remove}
+print(filtered_dict)  
+# Output: {'a': 1, 'c': 3}
+Let me know if you need variations of this! 😊
+ChatGPT: You can filter a dictionary based on a list of keys using a dictionary comprehension. Here’s how:Example: Keeping Only Specific KeysIf you want to keep only the keys in a given list:pythonCopyEditdata = {'a': 1, 'b': 2, 'c': 3, 'd': 4}
+keys_to_keep = ['a', 'c']
+
+filtered_dict = {key: data[key] for key in keys_to_keep if key in data}
+print(filtered_dict)  
+# Output: {'a': 1, 'c': 3}
+Example: Removing Specific KeysIf you want to remove keys in a given list:pythonCopyEditkeys_to_remove = ['b', 'd']
+
+filtered_dict = {key: value for key, value in data.items() if key not in keys_to_remove}
+print(filtered_dict)  
+# Output: {'a': 1, 'c': 3}
+Let me know if you need variations of this! 😊
+Human: syntactic_types_dict = {key: value for key, value in embeddings.items() if key not in semantic_types}
+syntactic_types_dict
+---------------------------------------------------------------------------
+AttributeError                            Traceback (most recent call last)
+Cell In[17], line 6
+      3 semantic_types_dict = {key: embeddings[key] for key in semantic_types if key in embeddings}
+      4 semantic_types_dict
+----> 6 syntactic_types_dict = {key: value for key, value in embeddings.items() if key not in semantic_types}
+      7 syntactic_types_dict
+
+AttributeError: 'Embeddings' object has no attribute 'items'
+Human: syntactic_types_dict = {key: value for key, value in embeddings.items() if key not in semantic_types}
+syntactic_types_dict
+---------------------------------------------------------------------------
+AttributeError                            Traceback (most recent call last)
+Cell In[17], line 6
+      3 semantic_types_dict = {key: embeddings[key] for key in semantic_types if key in embeddings}
+      4 semantic_types_dict
+----> 6 syntactic_types_dict = {key: value for key, value in embeddings.items() if key not in semantic_types}
+      7 syntactic_types_dict
+
+AttributeError: 'Embeddings' object has no attribute 'items'
+ChatGPT: The error AttributeError: 'Embeddings' object has no attribute 'items' suggests that embeddings is not a standard Python dictionary. Instead, it's likely a custom object (e.g., a class wrapping word embeddings) that does not have the .items() method.How to Fix ItSince embeddings does not support .items(), you should check how it stores word embeddings. Here are some possible fixes:1. Check If embeddings Supports Dictionary-Like AccessTry:pythonCopyEditprint(type(embeddings))  # Check what kind of object it is
+print(dir(embeddings))   # See available attributes/methods
+If embeddings supports key-based indexing (like embeddings['word']), but not .items(), you can try:pythonCopyEditsyntactic_types_dict = {key: embeddings[key] for key in embeddings.keys() if key not in semantic_types}
+If embeddings.keys() doesn't exist, try explicitly getting all keys:pythonCopyEditall_keys = list(embeddings)  # This works if it's iterable
+syntactic_types_dict = {key: embeddings[key] for key in all_keys if key not in semantic_types}
+2. If embeddings Uses a Lookup FunctionIf embeddings is a class that requires a lookup function (e.g., embeddings.get_vector(word)), modify your approach:pythonCopyEditsyntactic_types_dict = {key: embeddings.get_vector(key) for key in embeddings if key not in semantic_types}
+3. If embeddings Is a NumPy ArrayIf embeddings is an array (e.g., np.ndarray), it doesn’t have .items(). You might need to use an index mapping instead:pythonCopyEditsyntactic_types_dict = {key: embeddings.vectors[embeddings.indices[key]] for key in embeddings.indices if key not in semantic_types}
+(assuming embeddings.vectors stores embeddings and embeddings.indices maps words to indices)ConclusionSince embeddings is not a dictionary, check its attributes (dir(embeddings)) and find how it stores key-value pairs. Then adjust your code to use the appropriate access method instead of .items(). Let me know what type(embeddings) returns, and I can give a more specific fix! 🚀
+ChatGPT: The error AttributeError: 'Embeddings' object has no attribute 'items' suggests that embeddings is not a standard Python dictionary. Instead, it's likely a custom object (e.g., a class wrapping word embeddings) that does not have the .items() method.How to Fix ItSince embeddings does not support .items(), you should check how it stores word embeddings. Here are some possible fixes:1. Check If embeddings Supports Dictionary-Like AccessTry:pythonCopyEditprint(type(embeddings))  # Check what kind of object it is
+print(dir(embeddings))   # See available attributes/methods
+If embeddings supports key-based indexing (like embeddings['word']), but not .items(), you can try:pythonCopyEditsyntactic_types_dict = {key: embeddings[key] for key in embeddings.keys() if key not in semantic_types}
+If embeddings.keys() doesn't exist, try explicitly getting all keys:pythonCopyEditall_keys = list(embeddings)  # This works if it's iterable
+syntactic_types_dict = {key: embeddings[key] for key in all_keys if key not in semantic_types}
+2. If embeddings Uses a Lookup FunctionIf embeddings is a class that requires a lookup function (e.g., embeddings.get_vector(word)), modify your approach:pythonCopyEditsyntactic_types_dict = {key: embeddings.get_vector(key) for key in embeddings if key not in semantic_types}
+3. If embeddings Is a NumPy ArrayIf embeddings is an array (e.g., np.ndarray), it doesn’t have .items(). You might need to use an index mapping instead:pythonCopyEditsyntactic_types_dict = {key: embeddings.vectors[embeddings.indices[key]] for key in embeddings.indices if key not in semantic_types}
+(assuming embeddings.vectors stores embeddings and embeddings.indices maps words to indices)ConclusionSince embeddings is not a dictionary, check its attributes (dir(embeddings)) and find how it stores key-value pairs. Then adjust your code to use the appropriate access method instead of .items(). Let me know what type(embeddings) returns, and I can give a more specific fix! 🚀
+Human: running
+run_analogy_test(embeddings_50d, semantic_test_data, k = 1) # semantic
+
+returns:
+{'capital-common-countries': 0.6837944664031621,
+ 'capital-world': 0.5899646330680813,
+ 'city-in-state': 0.08755573571139036,
+ 'family': 0.4762845849802372}
+
+i want to report a single metric, a sum of all values in the dict
+Human: running
+run_analogy_test(embeddings_50d, semantic_test_data, k = 1) # semantic
+
+returns:
+{'capital-common-countries': 0.6837944664031621,
+ 'capital-world': 0.5899646330680813,
+ 'city-in-state': 0.08755573571139036,
+ 'family': 0.4762845849802372}
+
+i want to report a single metric, a sum of all values in the dict
+ChatGPT: If you want to report a single metric as the sum of all values in the dictionary, you can use Python’s built-in sum() function:Solution:pythonCopyEdittotal_score = sum(run_analogy_test(embeddings_50d, semantic_test_data, k=1).values())
+print(total_score)
+Explanation:run_analogy_test(...) returns a dictionary where values are the accuracy scores..values() extracts all the numerical values.sum() adds them up to give a single number.This will give you the total accuracy across all relation types. Let me know if you need a different aggregation method (e.g., average instead of sum)! 🚀
+ChatGPT: If you want to report a single metric as the sum of all values in the dictionary, you can use Python’s built-in sum() function:Solution:pythonCopyEdittotal_score = sum(run_analogy_test(embeddings_50d, semantic_test_data, k=1).values())
+print(total_score)
+Explanation:run_analogy_test(...) returns a dictionary where values are the accuracy scores..values() extracts all the numerical values.sum() adds them up to give a single number.This will give you the total accuracy across all relation types. Let me know if you need a different aggregation method (e.g., average instead of sum)! 🚀
+Human: for dataset in [embeddings_50d, embeddings_100d, embeddings_200d]:
+    # run analogy tests on GloVe 50
+    semantic_total_score = sum(run_analogy_test(dataset, semantic_test_data, k = 1).values())
+    syntactic_total_score = sum(run_analogy_test(dataset, syntactic_test_data, k = 1).values())
+    total_score = sum(run_analogy_test(dataset, test_data, k = 1).values())
+
+    print(f'{dataset}')
+    print(f'Semantic score: {semantic_total_score:.3f}')
+    print(f'Syntactic score: {syntactic_total_score:.3f}')
+    print(f'Total score: {total_score:.3f}')
+Human: for dataset in [embeddings_50d, embeddings_100d, embeddings_200d]:
+    # run analogy tests on GloVe 50
+    semantic_total_score = sum(run_analogy_test(dataset, semantic_test_data, k = 1).values())
+    syntactic_total_score = sum(run_analogy_test(dataset, syntactic_test_data, k = 1).values())
+    total_score = sum(run_analogy_test(dataset, test_data, k = 1).values())
+
+    print(f'{dataset}')
+    print(f'Semantic score: {semantic_total_score:.3f}')
+    print(f'Syntactic score: {syntactic_total_score:.3f}')
+    print(f'Total score: {total_score:.3f}')
+ChatGPT: Your loop is correctly iterating over different embedding sizes (embeddings_50d, embeddings_100d, embeddings_200d), computing analogy test scores for semantic, syntactic, and overall categories.Potential Issue:When printing:pythonCopyEditprint(f'{dataset}')
+If dataset is a NumPy array or a custom object, it may not display meaningful information.You might need to print something more descriptive, like its shape or type.Suggested Fix:Modify the print statement to show useful details:pythonCopyEditfor dataset_name, dataset in zip(["50D", "100D", "200D"], [embeddings_50d, embeddings_100d, embeddings_200d]):
+    semantic_total_score = sum(run_analogy_test(dataset, semantic_test_data, k=1).values())
+    syntactic_total_score = sum(run_analogy_test(dataset, syntactic_test_data, k=1).values())
+    total_score = sum(run_analogy_test(dataset, test_data, k=1).values())
+
+    print(f'Embeddings: {dataset_name}')
+    print(f'Semantic score: {semantic_total_score:.3f}')
+    print(f'Syntactic score: {syntactic_total_score:.3f}')
+    print(f'Total score: {total_score:.3f}')
+    print('-' * 40)
+Why This Works BetterIt explicitly labels the embedding size (50D, 100D, 200D) instead of printing a raw object.Adds a separator ('-' * 40) for readability.Let me know if you need further refinements! 🚀
+ChatGPT: Your loop is correctly iterating over different embedding sizes (embeddings_50d, embeddings_100d, embeddings_200d), computing analogy test scores for semantic, syntactic, and overall categories.Potential Issue:When printing:pythonCopyEditprint(f'{dataset}')
+If dataset is a NumPy array or a custom object, it may not display meaningful information.You might need to print something more descriptive, like its shape or type.Suggested Fix:Modify the print statement to show useful details:pythonCopyEditfor dataset_name, dataset in zip(["50D", "100D", "200D"], [embeddings_50d, embeddings_100d, embeddings_200d]):
+    semantic_total_score = sum(run_analogy_test(dataset, semantic_test_data, k=1).values())
+    syntactic_total_score = sum(run_analogy_test(dataset, syntactic_test_data, k=1).values())
+    total_score = sum(run_analogy_test(dataset, test_data, k=1).values())
+
+    print(f'Embeddings: {dataset_name}')
+    print(f'Semantic score: {semantic_total_score:.3f}')
+    print(f'Syntactic score: {syntactic_total_score:.3f}')
+    print(f'Total score: {total_score:.3f}')
+    print('-' * 40)
+Why This Works BetterIt explicitly labels the embedding size (50D, 100D, 200D) instead of printing a raw object.Adds a separator ('-' * 40) for readability.Let me know if you need further refinements! 🚀
+Human:     syntactic_total_score = sum(run_analogy_test(dataset, test_data, k = 1).values())
+instead, want to compute average over all values
+Human:     syntactic_total_score = sum(run_analogy_test(dataset, test_data, k = 1).values())
+instead, want to compute average over all values
+ChatGPT: To compute the average of the values instead of the sum, you can modify the line where you're calculating syntactic_total_score. Instead of using sum(), use np.mean() to compute the average.Here's how you can update your code:Updated Code:pythonCopyEditimport numpy as np
+
+for dataset_name, dataset in zip(["50D", "100D", "200D"], [embeddings_50d, embeddings_100d, embeddings_200d]):
+    semantic_total_score = sum(run_analogy_test(dataset, semantic_test_data, k=1).values())
+    syntactic_avg_score = np.mean(list(run_analogy_test(dataset, test_data, k=1).values()))
+    total_score = sum(run_analogy_test(dataset, test_data, k=1).values())
+
+    print(f'Embeddings: {dataset_name}')
+    print(f'Semantic score: {semantic_total_score:.3f}')
+    print(f'Syntactic average score: {syntactic_avg_score:.3f}')
+    print(f'Total score: {total_score:.3f}')
+    print('-' * 40)
+Explanation:np.mean() is used to compute the average over all values in the dictionary. Since run_analogy_test(...) returns a dictionary, list(...values()) extracts the values and computes the mean.Example Output:If your dictionary of results looks like this:pythonCopyEdit{
+    'capital-common-countries': 0.68,
+    'capital-world': 0.59,
+    'city-in-state': 0.09,
+    'family': 0.47
+}
+Then np.mean(...) will compute the average of the scores (sum of the values divided by the number of entries).Let me know if you need further adjustments! 😊
+ChatGPT: To compute the average of the values instead of the sum, you can modify the line where you're calculating syntactic_total_score. Instead of using sum(), use np.mean() to compute the average.Here's how you can update your code:Updated Code:pythonCopyEditimport numpy as np
+
+for dataset_name, dataset in zip(["50D", "100D", "200D"], [embeddings_50d, embeddings_100d, embeddings_200d]):
+    semantic_total_score = sum(run_analogy_test(dataset, semantic_test_data, k=1).values())
+    syntactic_avg_score = np.mean(list(run_analogy_test(dataset, test_data, k=1).values()))
+    total_score = sum(run_analogy_test(dataset, test_data, k=1).values())
+
+    print(f'Embeddings: {dataset_name}')
+    print(f'Semantic score: {semantic_total_score:.3f}')
+    print(f'Syntactic average score: {syntactic_avg_score:.3f}')
+    print(f'Total score: {total_score:.3f}')
+    print('-' * 40)
+Explanation:np.mean() is used to compute the average over all values in the dictionary. Since run_analogy_test(...) returns a dictionary, list(...values()) extracts the values and computes the mean.Example Output:If your dictionary of results looks like this:pythonCopyEdit{
+    'capital-common-countries': 0.68,
+    'capital-world': 0.59,
+    'city-in-state': 0.09,
+    'family': 0.47
+}
+Then np.mean(...) will compute the average of the scores (sum of the values divided by the number of entries).Let me know if you need further adjustments! 😊
+Human: for key in semantic_test_data.keys():
+    print(len(semantic_test_data[key]))
+
+calculate sum over all keys
+Human: for key in semantic_test_data.keys():
+    print(len(semantic_test_data[key]))
+
+calculate sum over all keys
+ChatGPT: To calculate the sum of all values (i.e., the total count across all keys in semantic_test_data), you can use sum() like this:pythonCopyEdittotal_count = sum(len(semantic_test_data[key]) for key in semantic_test_data.keys())
+print(total_count)
+Explanation:semantic_test_data.keys() gives all keys in the dictionary.len(semantic_test_data[key]) gets the length of the list corresponding to each key.sum(...) adds up these lengths to get the total count.Let me know if you need any modifications! 🚀
+ChatGPT: To calculate the sum of all values (i.e., the total count across all keys in semantic_test_data), you can use sum() like this:pythonCopyEdittotal_count = sum(len(semantic_test_data[key]) for key in semantic_test_data.keys())
+print(total_count)
+Explanation:semantic_test_data.keys() gives all keys in the dictionary.len(semantic_test_data[key]) gets the length of the list corresponding to each key.sum(...) adds up these lengths to get the total count.Let me know if you need any modifications! 🚀
+Human: want to store variable name in format {key}_size
+Human: want to store variable name in format {key}_size
+ChatGPT: You can dynamically create variables using a dictionary instead of actual variable names, which is a safer and more maintainable approach. Here's how:Using a Dictionary for Dynamic Variable NamespythonCopyEditkey_sizes = {f"{key}_size": len(semantic_test_data[key]) for key in semantic_test_data.keys()}
+print(key_sizes)
+This will create a dictionary where each key follows the {key}_size format and maps to the corresponding length.Example Output:If semantic_test_data contains:pythonCopyEdit{
+    "capital-common-countries": [...],  # 300 entries
+    "capital-world": [...],             # 200 entries
+    "city-in-state": [...],              # 500 entries
+}
+Then key_sizes will look like:pythonCopyEdit{
+    "capital-common-countries_size": 300,
+    "capital-world_size": 200,
+    "city-in-state_size": 500
+}
+If you absolutely need actual variables, you can use globals() (not recommended due to maintainability concerns):pythonCopyEditfor key in semantic_test_data.keys():
+    globals()[f"{key}_size"] = len(semantic_test_data[key])
+
+print(capital_common_countries_size)  # Example usage
+However, using a dictionary is the preferred approach. Let me know what works best for you! 🚀
+ChatGPT: You can dynamically create variables using a dictionary instead of actual variable names, which is a safer and more maintainable approach. Here's how:Using a Dictionary for Dynamic Variable NamespythonCopyEditkey_sizes = {f"{key}_size": len(semantic_test_data[key]) for key in semantic_test_data.keys()}
+print(key_sizes)
+This will create a dictionary where each key follows the {key}_size format and maps to the corresponding length.Example Output:If semantic_test_data contains:pythonCopyEdit{
+    "capital-common-countries": [...],  # 300 entries
+    "capital-world": [...],             # 200 entries
+    "city-in-state": [...],              # 500 entries
+}
+Then key_sizes will look like:pythonCopyEdit{
+    "capital-common-countries_size": 300,
+    "capital-world_size": 200,
+    "city-in-state_size": 500
+}
+If you absolutely need actual variables, you can use globals() (not recommended due to maintainability concerns):pythonCopyEditfor key in semantic_test_data.keys():
+    globals()[f"{key}_size"] = len(semantic_test_data[key])
+
+print(capital_common_countries_size)  # Example usage
+However, using a dictionary is the preferred approach. Let me know what works best for you! 🚀
+Human: sizes = {}
+for dataset in [semantic_test_data, syntactic_test_data, test_data]:
+    for key in dataset.keys():
+        sizes[f'{key}_size'] = (len(dataset[key]))
+    sizes[f'{dataset}_size'] = sum(len(dataset[key]) for key in dataset.keys())
+
+sizes
+
+output
+{'capital-common-countries_size': 506,
+ 'capital-world_size': 4524,
+ 'currency_size': 866,
+ 'city-in-state_size': 2467,
+ 'family_size': 506,
+ "{'capital-common-countries': [('athens', 'greece', 'baghdad', 'iraq'), ...
+ 'gram3-comparative_size': 1332,
+ 'gram2-opposite_size': 812,
+ 'gram4-superlative_size': 1122,
+ 'gram8-plural_size': 1332,
+ 'gram5-present-participle_size': 1056,
+ 'gram6-nationality-adjective_size': 1599,
+ 'gram7-past-tense_size': 1560,
+ 'gram9-plural-verbs_size': 870,
+ 'gram1-adjective-to-adverb_size': 992,
+"{'gram3-comparative': [('bad', 'worse', 'big', 'bigger')...
+"{'capital-common-countries': [('athens', 'greece', 'baghdad', 'iraq')....
+Human: sizes = {}
+for dataset in [semantic_test_data, syntactic_test_data, test_data]:
+    for key in dataset.keys():
+        sizes[f'{key}_size'] = (len(dataset[key]))
+    sizes[f'{dataset}_size'] = sum(len(dataset[key]) for key in dataset.keys())
+
+sizes
+
+output
+{'capital-common-countries_size': 506,
+ 'capital-world_size': 4524,
+ 'currency_size': 866,
+ 'city-in-state_size': 2467,
+ 'family_size': 506,
+ "{'capital-common-countries': [('athens', 'greece', 'baghdad', 'iraq'), ...
+ 'gram3-comparative_size': 1332,
+ 'gram2-opposite_size': 812,
+ 'gram4-superlative_size': 1122,
+ 'gram8-plural_size': 1332,
+ 'gram5-present-participle_size': 1056,
+ 'gram6-nationality-adjective_size': 1599,
+ 'gram7-past-tense_size': 1560,
+ 'gram9-plural-verbs_size': 870,
+ 'gram1-adjective-to-adverb_size': 992,
+"{'gram3-comparative': [('bad', 'worse', 'big', 'bigger')...
+"{'capital-common-countries': [('athens', 'greece', 'baghdad', 'iraq')....
+ChatGPT: The issue in your output is that the dataset-level sizes (like "{'capital-common-countries': [('athens', 'greece', 'baghdad', 'iraq'), ...) are stored incorrectly. This happens because f'{dataset}_size' is using dataset, which is a dictionary, directly in an f-string, leading to an incorrect string representation of the dataset.Fix: Use Meaningful Names for Dataset-Level SizesModify your code as follows:pythonCopyEditsizes = {}
+dataset_names = ["semantic", "syntactic", "total"]
+
+for dataset_name, dataset in zip(dataset_names, [semantic_test_data, syntactic_test_data, test_data]):
+    for key in dataset.keys():
+        sizes[f'{key}_size'] = len(dataset[key])
+    sizes[f'{dataset_name}_size'] = sum(len(dataset[key]) for key in dataset.keys())
+
+print(sizes)
+What This Fix Does:Uses dataset_name instead of dataset in f'{dataset}_size' to ensure proper string formatting.Prevents incorrect dataset string representations from appearing in the dictionary.Improves readability by explicitly defining dataset-level sizes as semantic_size, syntactic_size, and total_size.Example Expected Output:pythonCopyEdit{
+ 'capital-common-countries_size': 506,
+ 'capital-world_size': 4524,
+ 'currency_size': 866,
+ 'city-in-state_size': 2467,
+ 'family_size': 506,
+ 'semantic_size': 8869,  # Sum of semantic dataset sizes
+ 'gram3-comparative_size': 1332,
+ 'gram2-opposite_size': 812,
+ 'gram4-superlative_size': 1122,
+ 'gram8-plural_size': 1332,
+ 'gram5-present-participle_size': 1056,
+ 'gram6-nationality-adjective_size': 1599,
+ 'gram7-past-tense_size': 1560,
+ 'gram9-plural-verbs_size': 870,
+ 'gram1-adjective-to-adverb_size': 992,
+ 'syntactic_size': 10175,  # Sum of syntactic dataset sizes
+ 'total_size': 19044  # Sum of all keys in test_data
+}
+This ensures that dataset-level sizes have correct names and the overall structure is clear. 🚀
+ChatGPT: The issue in your output is that the dataset-level sizes (like "{'capital-common-countries': [('athens', 'greece', 'baghdad', 'iraq'), ...) are stored incorrectly. This happens because f'{dataset}_size' is using dataset, which is a dictionary, directly in an f-string, leading to an incorrect string representation of the dataset.Fix: Use Meaningful Names for Dataset-Level SizesModify your code as follows:pythonCopyEditsizes = {}
+dataset_names = ["semantic", "syntactic", "total"]
+
+for dataset_name, dataset in zip(dataset_names, [semantic_test_data, syntactic_test_data, test_data]):
+    for key in dataset.keys():
+        sizes[f'{key}_size'] = len(dataset[key])
+    sizes[f'{dataset_name}_size'] = sum(len(dataset[key]) for key in dataset.keys())
+
+print(sizes)
+What This Fix Does:Uses dataset_name instead of dataset in f'{dataset}_size' to ensure proper string formatting.Prevents incorrect dataset string representations from appearing in the dictionary.Improves readability by explicitly defining dataset-level sizes as semantic_size, syntactic_size, and total_size.Example Expected Output:pythonCopyEdit{
+ 'capital-common-countries_size': 506,
+ 'capital-world_size': 4524,
+ 'currency_size': 866,
+ 'city-in-state_size': 2467,
+ 'family_size': 506,
+ 'semantic_size': 8869,  # Sum of semantic dataset sizes
+ 'gram3-comparative_size': 1332,
+ 'gram2-opposite_size': 812,
+ 'gram4-superlative_size': 1122,
+ 'gram8-plural_size': 1332,
+ 'gram5-present-participle_size': 1056,
+ 'gram6-nationality-adjective_size': 1599,
+ 'gram7-past-tense_size': 1560,
+ 'gram9-plural-verbs_size': 870,
+ 'gram1-adjective-to-adverb_size': 992,
+ 'syntactic_size': 10175,  # Sum of syntactic dataset sizes
+ 'total_size': 19044  # Sum of all keys in test_data
+}
+This ensures that dataset-level sizes have correct names and the overall structure is clear. 🚀
+Human: # define analogy questions of interest
+analogy_q = [['france', 'paris', 'italy'],
+             ['france', 'paris', 'japan'],
+             ['france', 'paris', 'florida'],
+             ['big', 'bigger', 'small'],
+             ['big', 'bigger', 'cold'],
+             ['big', 'bigger', 'quick']]
+
+# find closest word to answer analogy question 
+for embedding_name, embedding in zip(['50d', '100d', '200d'], [embeddings_50d, embeddings_100d, embeddings_200d]):
+    print(embedding_name)
+    for a, b, c in analogy_q:
+        target_vec = embedding[b] - embedding[a] + embedding[c]
+        closest_word = get_closest_words(embedding, target_vec.reshape(1, -1), k = 1)[0]
+        print(f'{analogy}: {closest_word}')
+Human: # define analogy questions of interest
+analogy_q = [['france', 'paris', 'italy'],
+             ['france', 'paris', 'japan'],
+             ['france', 'paris', 'florida'],
+             ['big', 'bigger', 'small'],
+             ['big', 'bigger', 'cold'],
+             ['big', 'bigger', 'quick']]
+
+# find closest word to answer analogy question 
+for embedding_name, embedding in zip(['50d', '100d', '200d'], [embeddings_50d, embeddings_100d, embeddings_200d]):
+    print(embedding_name)
+    for a, b, c in analogy_q:
+        target_vec = embedding[b] - embedding[a] + embedding[c]
+        closest_word = get_closest_words(embedding, target_vec.reshape(1, -1), k = 1)[0]
+        print(f'{analogy}: {closest_word}')
+ChatGPT: There's a small mistake in your print statement—you're referencing analogy, which isn't defined. You should explicitly reference the variables a, b, c to display the analogy correctly.Fixed Code:pythonCopyEdit# Define analogy questions of interest
+analogy_q = [['france', 'paris', 'italy'],
+             ['france', 'paris', 'japan'],
+             ['france', 'paris', 'florida'],
+             ['big', 'bigger', 'small'],
+             ['big', 'bigger', 'cold'],
+             ['big', 'bigger', 'quick']]
+
+# Find the closest word to answer each analogy question
+for embedding_name, embedding in zip(['50d', '100d', '200d'], [embeddings_50d, embeddings_100d, embeddings_200d]):
+    print(f"Embedding: {embedding_name}")
+    for a, b, c in analogy_q:
+        target_vec = embedding[b] - embedding[a] + embedding[c]
+        closest_word = get_closest_words(embedding, target_vec.reshape(1, -1), k=1)[0]
+        print(f'({a} → {b}) :: ({c} → {closest_word})')  # Clearer format
+    print('-' * 40)
+What I Fixed:Replaced analogy with explicit (a, b, c) values in the print statement to show the analogy structure.Formatted the output for better readability:(a → b) :: (c → closest_word) makes it clearer.Example: (france → paris) :: (italy → rome)Added a separator ('-' * 40) for better readability when switching between embeddings.Let me know if you need further refinements! 🚀
+ChatGPT: There's a small mistake in your print statement—you're referencing analogy, which isn't defined. You should explicitly reference the variables a, b, c to display the analogy correctly.Fixed Code:pythonCopyEdit# Define analogy questions of interest
+analogy_q = [['france', 'paris', 'italy'],
+             ['france', 'paris', 'japan'],
+             ['france', 'paris', 'florida'],
+             ['big', 'bigger', 'small'],
+             ['big', 'bigger', 'cold'],
+             ['big', 'bigger', 'quick']]
+
+# Find the closest word to answer each analogy question
+for embedding_name, embedding in zip(['50d', '100d', '200d'], [embeddings_50d, embeddings_100d, embeddings_200d]):
+    print(f"Embedding: {embedding_name}")
+    for a, b, c in analogy_q:
+        target_vec = embedding[b] - embedding[a] + embedding[c]
+        closest_word = get_closest_words(embedding, target_vec.reshape(1, -1), k=1)[0]
+        print(f'({a} → {b}) :: ({c} → {closest_word})')  # Clearer format
+    print('-' * 40)
+What I Fixed:Replaced analogy with explicit (a, b, c) values in the print statement to show the analogy structure.Formatted the output for better readability:(a → b) :: (c → closest_word) makes it clearer.Example: (france → paris) :: (italy → rome)Added a separator ('-' * 40) for better readability when switching between embeddings.Let me know if you need further refinements! 🚀
+Human: undefined
+Human: undefined
