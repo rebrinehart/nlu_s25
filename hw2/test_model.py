@@ -5,10 +5,9 @@ import pickle
 
 import evaluate
 from datasets import load_dataset
-from transformers import BertTokenizerFast, BertForSequenceClassification, \
+from transformers import AutoModelForSequenceClassification, BertTokenizerFast, BertForSequenceClassification, \
     Trainer, TrainingArguments
-
-from train_model import preprocess_dataset
+from train_model import preprocess_dataset, compute_accuracy
 
 
 def init_tester(directory: str) -> Trainer:
@@ -23,7 +22,14 @@ def init_tester(directory: str) -> Trainer:
         saved
     :return: A Trainer used for testing
     """
-    raise NotImplementedError("Problem 2b has not been completed yet!")
+    model = AutoModelForSequenceClassification.from_pretrained(directory)
+
+    test_dataset = load_dataset()
+    test_args = TrainingArguments(output_dir = directory, do_train = False, do_eval = True)
+
+    return Trainer(
+                  args = test_args,
+                  compute_metrics = compute_accuracy)
 
 
 if __name__ == "__main__":  # Use this script to test your model
