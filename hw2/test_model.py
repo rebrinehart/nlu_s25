@@ -27,7 +27,7 @@ def init_tester(directory: str) -> Trainer:
     test_dataset = load_dataset("imdb", split = "test")
     test_args = TrainingArguments(output_dir = "./eval_results", do_train = False, do_eval = True)
 
-    return Trainer(
+    return Trainer(model = model,
                   args = test_args,
                   compute_metrics = compute_accuracy)
 
