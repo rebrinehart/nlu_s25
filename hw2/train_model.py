@@ -99,7 +99,9 @@ def init_trainer(model_name: str, train_data: Dataset, val_data: Dataset,
                             num_train_epochs = 4
                             )
 
-    return Trainer(model = model_name, 
+    model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
+
+    return Trainer(model = model, 
                   args = train_args, 
                   train_dataset = train_data,
                   eval_dataset = val_data, 
