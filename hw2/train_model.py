@@ -94,7 +94,7 @@ def init_trainer(model_name: str, train_data: Dataset, val_data: Dataset,
     """
 
     train_args = TrainingArguments(output_dir = './checkpoints',
-                            eval_strategy = 'epoch',
+                            evaluation_strategy = 'epoch',
                             save_strategy = 'epoch',
                             num_train_epochs = 4
                             )
