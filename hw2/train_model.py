@@ -101,7 +101,7 @@ def init_trainer(model_name: str, train_data: Dataset, val_data: Dataset,
 
     model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
 
-    return Trainer(model = model, 
+    return Trainer(model_init =lambda trial: init_model(trial, model_name, use_bitfit),
                   args = train_args, 
                   train_dataset = train_data,
                   eval_dataset = val_data, 
