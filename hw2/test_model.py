@@ -24,8 +24,8 @@ def init_tester(directory: str) -> Trainer:
     """
     model = AutoModelForSequenceClassification.from_pretrained(directory)
 
-    test_dataset = load_dataset()
-    test_args = TrainingArguments(output_dir = directory, do_train = False, do_eval = True)
+    test_dataset = load_dataset("imdb", split = "test")
+    test_args = TrainingArguments(output_dir = "./eval_results", do_train = False, do_eval = True)
 
     return Trainer(
                   args = test_args,
