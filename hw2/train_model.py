@@ -118,14 +118,19 @@ def hyperparameter_search_settings() -> Dict[str, Any]:
 
     :return: Keyword arguments for Trainer.hyperparameter_search
     """
-    return {
-        "backend'": 'optuna',
-        'direction' : 'maximize',
-        "learning_rate": trial.suggest_categorical("learning_rate", [3e-4, 1e-4, 5e-5, 3e-5]),
-        "per_device_train_batch_size": trial.suggest_categorical("per_device_train_batch_size", [8, 16, 32, 64, 128]),
-        'num_train_epochs' : 4
-    }
 
+    search_space = {"learning_rate": [3e-4, 1e-4, 5e-5, 3e-5],
+    "per_device_train_batch_size": [8, 16, 32, 64, 128]}
+
+    return {
+    "backend": 'optuna',
+    'direction' : 'maximize',
+    "learning_rate": [3e-4, 1e-4, 5e-5, 3e-5],
+    "per_device_train_batch_size": [8, 16, 32, 64, 128],
+    'num_train_epochs' : [4],
+    'compute_objective' : compute_accuracy(),
+    'sampler' : optuna.samplers.GridSampler(search_space)
+    }
 
 if __name__ == "__main__":  # Use this script to train your model
     model_name = "prajjwal1/bert-tiny"
