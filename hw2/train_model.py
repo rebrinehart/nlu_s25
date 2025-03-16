@@ -119,20 +119,22 @@ def hyperparameter_search_settings() -> Dict[str, Any]:
     :return: Keyword arguments for Trainer.hyperparameter_search
     """
 
-    def hp_space(trial) = return {"learning_rate": trial.suggest_categorical('learning_rate', [3e-4, 1e-4, 5e-5, 3e-5],
-    "per_device_train_batch_size": trial.suggest_categorical('per_device_train_batch_size', [8, 16, 32, 64, 128]
-    }
+    def hp_space(trial) : 
+        return {
+            "learning_rate": trial.suggest_categorical('learning_rate', [3e-4, 1e-4, 5e-5, 3e-5]),
+            "per_device_train_batch_size": trial.suggest_categorical('per_device_train_batch_size', [8, 16, 32, 64, 128])
+            }
 
-    search_space = {"learning_rate": [3e-4, 1e-4, 5e-5, 3e-5],
-    "per_device_train_batch_size": [8, 16, 32, 64, 128]}
-
-    }
+    search_space = {
+        "learning_rate": [3e-4, 1e-4, 5e-5, 3e-5],
+        "per_device_train_batch_size": [8, 16, 32, 64, 128]
+        }
 
     return {
     "backend": 'optuna',
     'direction' : 'maximize',
     'hp_space' : hp_space,
-    'n_trials' = 20,
+    'n_trials' : 20,
     'num_train_epochs' : 4,
     'compute_objective' : compute_accuracy,
     'sampler' : optuna.samplers.GridSampler(search_space)
