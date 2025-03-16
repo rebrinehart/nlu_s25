@@ -135,8 +135,8 @@ def hyperparameter_search_settings() -> Dict[str, Any]:
     'direction' : 'maximize',
     'hp_space' : hp_space,
     'n_trials' : 20,
-    'num_train_epochs' : 4,
-    'compute_objective' : compute_accuracy,
+    # 'num_train_epochs' : 4,
+    'compute_objective' : lambda metrics: metrics['eval_accuracy'],
     'sampler' : optuna.samplers.GridSampler(search_space)
     }
 
