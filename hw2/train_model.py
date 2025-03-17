@@ -2,6 +2,7 @@
 Code for Problem 1 of HW 2.
 """
 import pickle
+import argparse
 from typing import Any, Dict
 
 import evaluate
@@ -143,6 +144,11 @@ def hyperparameter_search_settings() -> Dict[str, Any]:
 if __name__ == "__main__":  # Use this script to train your model
     model_name = "prajjwal1/bert-tiny"
 
+    # Parse command-line arguments
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('--use_bitfit', action='store_true', help='Use BitFit for training')
+    # args = parser.parse_args()
+
     # Load IMDb dataset and create validation split
     imdb = load_dataset("imdb")
     split = imdb["train"].train_test_split(.2, seed=3463)
@@ -163,5 +169,9 @@ if __name__ == "__main__":  # Use this script to train your model
 
     # Train and save the best hyperparameters
     best = trainer.hyperparameter_search(**hyperparameter_search_settings())
-    with open("train_results.p", "wb") as f:
+
+
+    # Save results with appropriate file name based on BitFit usage
+    result_file = "train_results_without_bitfit.p"
+    with open(result_file, "wb") as f:
         pickle.dump(best, f)

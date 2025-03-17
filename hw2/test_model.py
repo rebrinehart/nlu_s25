@@ -34,6 +34,11 @@ def init_tester(directory: str) -> Trainer:
 
 if __name__ == "__main__":  # Use this script to test your model
     model_name = "prajjwal1/bert-tiny"
+    # with open("train_results_with_bitfit.p", "rb") as f:
+    #     train_results = pickle.load(f)
+    #     best_model_path = train_results["best_model_path"]  # Get saved model path
+
+    # print(f"Loading model from {best_model_path}...")
 
     # Load IMDb dataset
     imdb = load_dataset("imdb")
@@ -45,9 +50,9 @@ if __name__ == "__main__":  # Use this script to test your model
     imdb["test"] = preprocess_dataset(imdb["test"], tokenizer)
 
     # Set up tester
-    tester = init_tester("path_to_your_best_model")
+    tester = init_tester('/teamspace/studios/this_studio/nlu_s25/hw2/checkpoints/run-1/checkpoint-5000')
 
     # Test
     results = tester.predict(imdb["test"])
-    with open("test_results.p", "wb") as f:
+    with open("test_results_without_bitfit.p", "wb") as f:
         pickle.dump(results, f)

@@ -1,0 +1,89 @@
+{
+  "best_metric": null,
+  "best_model_checkpoint": null,
+  "epoch": 2.0,
+  "eval_steps": 500,
+  "global_step": 2500,
+  "is_hyper_param_search": true,
+  "is_local_process_zero": true,
+  "is_world_process_zero": true,
+  "log_history": [
+    {
+      "epoch": 0.4,
+      "grad_norm": 0.2730711102485657,
+      "learning_rate": 0.00027,
+      "loss": 0.6831,
+      "step": 500
+    },
+    {
+      "epoch": 0.8,
+      "grad_norm": 0.10546848177909851,
+      "learning_rate": 0.00023999999999999998,
+      "loss": 0.6732,
+      "step": 1000
+    },
+    {
+      "epoch": 1.0,
+      "eval_accuracy": 0.621,
+      "eval_loss": 0.6670564413070679,
+      "eval_runtime": 6.5934,
+      "eval_samples_per_second": 758.338,
+      "eval_steps_per_second": 94.792,
+      "step": 1250
+    },
+    {
+      "epoch": 1.2,
+      "grad_norm": 0.14021418988704681,
+      "learning_rate": 0.00020999999999999998,
+      "loss": 0.6689,
+      "step": 1500
+    },
+    {
+      "epoch": 1.6,
+      "grad_norm": 0.10479994118213654,
+      "learning_rate": 0.00017999999999999998,
+      "loss": 0.6642,
+      "step": 2000
+    },
+    {
+      "epoch": 2.0,
+      "grad_norm": 0.22252056002616882,
+      "learning_rate": 0.00015,
+      "loss": 0.6611,
+      "step": 2500
+    },
+    {
+      "epoch": 2.0,
+      "eval_accuracy": 0.6362,
+      "eval_loss": 0.6576910018920898,
+      "eval_runtime": 9.8459,
+      "eval_samples_per_second": 507.824,
+      "eval_steps_per_second": 63.478,
+      "step": 2500
+    }
+  ],
+  "logging_steps": 500,
+  "max_steps": 5000,
+  "num_input_tokens_seen": 0,
+  "num_train_epochs": 4,
+  "save_steps": 500,
+  "stateful_callbacks": {
+    "TrainerControl": {
+      "args": {
+        "should_epoch_stop": false,
+        "should_evaluate": false,
+        "should_log": false,
+        "should_save": true,
+        "should_training_stop": false
+      },
+      "attributes": {}
+    }
+  },
+  "total_flos": 50819481600000.0,
+  "train_batch_size": 16,
+  "trial_name": null,
+  "trial_params": {
+    "learning_rate": 0.0003,
+    "per_device_train_batch_size": 16
+  }
+}
