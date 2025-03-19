@@ -7,8 +7,17 @@ import evaluate
 from datasets import load_dataset
 from transformers import AutoModelForSequenceClassification, BertTokenizerFast, BertForSequenceClassification, \
     Trainer, TrainingArguments
-from train_model import preprocess_dataset, compute_accuracy
+from train_model import preprocess_dataset
+import numpy as np
 
+def compute_accuracy(eval_pred):
+        """
+        Computes and returns accuracy metric.
+        """
+        metric = evaluate.load('accuracy')
+        logits, labels = eval_pred
+        predictions = np.argmax(logits, axis = -1)
+        return metric.compute(predictions = predictions, references = labels)
 
 def init_tester(directory: str) -> Trainer:
     """
@@ -24,6 +33,9 @@ def init_tester(directory: str) -> Trainer:
     """
     model = AutoModelForSequenceClassification.from_pretrained(directory)
 
+    trainable_params = count_trainable_parameters(model)
+    print(f"Trainable Parameters: {trainable_params}")
+
     test_dataset = load_dataset("imdb", split = "test")
     test_args = TrainingArguments(output_dir = "./eval_results", do_train = False, do_eval = True)
 
@@ -31,6 +43,14 @@ def init_tester(directory: str) -> Trainer:
                   args = test_args,
                   compute_metrics = compute_accuracy)
 
+def count_trainable_parameters(model):
+    """
+    Count the number of trainable parameters in the model.
+    :param model: The model for which we want to count the parameters
+    :return: The number of trainable parameters
+    """
+    total_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    return total_trainable_params
 
 if __name__ == "__main__":  # Use this script to test your model
     model_name = "prajjwal1/bert-tiny"
@@ -50,9 +70,10 @@ if __name__ == "__main__":  # Use this script to test your model
     imdb["test"] = preprocess_dataset(imdb["test"], tokenizer)
 
     # Set up tester
-    tester = init_tester('/teamspace/studios/this_studio/nlu_s25/hw2/checkpoints/run-1/checkpoint-5000')
+    tester = init_tester('/teamspace/studios/this_studio/nlu_s25/hw2/checkpoints_with_bitfit/run-1/checkpoint-5000')
 
     # Test
     results = tester.predict(imdb["test"])
-    with open("test_results_without_bitfit.p", "wb") as f:
+    with open("test_results_with_bitfit.p", "wb") as f:
         pickle.dump(results, f)
+

@@ -1,6 +1,9 @@
 """
 Code for Problem 1 of HW 2.
 """
+from transformers.models.bert.modeling_bert import BertForSequenceClassification
+
+
 import pickle
 import argparse
 from typing import Any, Dict
@@ -8,6 +11,7 @@ from typing import Any, Dict
 import evaluate
 import numpy as np
 import optuna
+import os
 from datasets import Dataset, load_dataset
 from transformers import AutoModelForSequenceClassification, BertTokenizerFast, BertForSequenceClassification, \
     Trainer, TrainingArguments, EvalPrediction
@@ -27,7 +31,7 @@ def preprocess_dataset(dataset: Dataset, tokenizer: BertTokenizerFast) \
     """
     def tokenize_function(examples):
       return tokenizer(
-          examples['text'],  
+          examples['text'],
           padding="max_length",
           truncation=True,
           max_length=512
@@ -37,7 +41,7 @@ def preprocess_dataset(dataset: Dataset, tokenizer: BertTokenizerFast) \
     tokenized_dataset = dataset.map(tokenize_function, batched=True)
 
     return tokenized_dataset
-    
+
 
 
 def init_model(trial: Any, model_name: str, use_bitfit: bool = False) -> \
@@ -59,22 +63,13 @@ def init_model(trial: Any, model_name: str, use_bitfit: bool = False) -> \
         than bias terms
     :return: A newly initialized pre-trained Transformer classifier
     """
-    model = BertForSequenceClassification.from_pretrained(model_name, num_labels = 2)
+    model: BertForSequenceClassification = BertForSequenceClassification.from_pretrained(model_name, num_labels = 2)
     if use_bitfit:
       for name, param in model.named_parameters():
         if 'bias' not in name:
           param.requires_grad = False
 
     return model
-      
-def compute_accuracy(eval_pred):
-  """
-  Computes and returns accuracy metric.
-  """
-  accuracy = evaluate.load('accuracy')
-  logits, labels = eval_pred
-  predictions = np.argmax(logits, axis = -1)
-  return accuracy.compute(predictions = predictions, references = labels)
 
 def init_trainer(model_name: str, train_data: Dataset, val_data: Dataset,
                  use_bitfit: bool = False) -> Trainer:
@@ -94,19 +89,29 @@ def init_trainer(model_name: str, train_data: Dataset, val_data: Dataset,
     :return: A Trainer used for training
     """
 
-    train_args = TrainingArguments(output_dir = './checkpoints',
+    train_args = TrainingArguments(output_dir = './checkpoints_without_bitfit',
                             evaluation_strategy = 'epoch',
                             save_strategy = 'epoch',
-                            num_train_epochs = 4
+                            num_train_epochs = 4,
                             )
 
-    model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
+    def compute_accuracy(eval_pred):
+        """
+        Computes and returns accuracy metric.
+        """
+        metric = evaluate.load('accuracy')
+        logits, labels = eval_pred
+        predictions = np.argmax(logits, axis = -1)
+        return metric.compute(predictions = predictions, references = labels)
 
-    return Trainer(model_init =lambda trial: init_model(trial, model_name, use_bitfit),
-                  args = train_args, 
+
+
+    return Trainer(model_init =lambda trial: init_model(None, model_name, use_bitfit),
+                  args = train_args,
                   train_dataset = train_data,
-                  eval_dataset = val_data, 
+                  eval_dataset = val_data,
                   compute_metrics = compute_accuracy)
+
 
 
 def hyperparameter_search_settings() -> Dict[str, Any]:
@@ -120,7 +125,7 @@ def hyperparameter_search_settings() -> Dict[str, Any]:
     :return: Keyword arguments for Trainer.hyperparameter_search
     """
 
-    def hp_space(trial) : 
+    def hp_space(trial) :
         return {
             "learning_rate": trial.suggest_categorical('learning_rate', [3e-4, 1e-4, 5e-5, 3e-5]),
             "per_device_train_batch_size": trial.suggest_categorical('per_device_train_batch_size', [8, 16, 32, 64, 128])
@@ -144,11 +149,6 @@ def hyperparameter_search_settings() -> Dict[str, Any]:
 if __name__ == "__main__":  # Use this script to train your model
     model_name = "prajjwal1/bert-tiny"
 
-    # Parse command-line arguments
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--use_bitfit', action='store_true', help='Use BitFit for training')
-    # args = parser.parse_args()
-
     # Load IMDb dataset and create validation split
     imdb = load_dataset("imdb")
     split = imdb["train"].train_test_split(.2, seed=3463)
@@ -165,12 +165,11 @@ if __name__ == "__main__":  # Use this script to train your model
 
     # Set up trainer
     trainer = init_trainer(model_name, imdb["train"], imdb["val"],
-                           use_bitfit=True)
+                           use_bitfit=False)
 
     # Train and save the best hyperparameters
     best = trainer.hyperparameter_search(**hyperparameter_search_settings())
-
-
+    
     # Save results with appropriate file name based on BitFit usage
     result_file = "train_results_without_bitfit.p"
     with open(result_file, "wb") as f:
