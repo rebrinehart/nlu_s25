@@ -165,7 +165,29 @@ class MultipleChoicePipeline(Pipeline):
                 text 5 corresponds to answer choice 1 for question 1,
                 etc.
         """
-        raise NotImplementedError("Problem 2c has not been completed yet!")
+        # The input texts for each answer choice in the batch
+        input_texts = []
+        # The question and answer choices for each question in the batch
+        questions = batch["question"]
+        choices = batch["choices"]
+        # The number of questions in the batch
+        num_questions = len(questions)
+        # Iterate over each question in the batch
+        for i in range(len(questions)):
+            # Get the question and answer choices for this question
+            question = questions[i]
+            question_choices = choices[i]
+            # Iterate over each answer choice for this question
+            for j in range(self.num_choices):
+                # Get the answer choice text
+                choice = question_choices[j]
+                # Concatenate the prompt, question, and answer choice
+                input_text = f"{self._demos}Q: {question}\nA:{self._system_prompt} {choice}"
+                # Append the input text to the list
+                input_texts.append(input_text)
+        # Return the input texts
+        return input_texts
+
 
     def preprocess(self, batch: Dict[str, Any]) -> Dict[str, torch.Tensor]:
         """
@@ -183,6 +205,21 @@ class MultipleChoicePipeline(Pipeline):
             These tensors should be stored on the GPU if it is being
             used; otherwise, they should be stored on the CPU
         """
+        # Generate the input texts
+        input_texts = self._get_input_texts(batch)
+
+        # Tokenize the input texts
+        tokenized = self.tokenizer(input_texts, 
+                                   padding=True,
+                                   truncation=True, 
+                                   return_tensors="pt"
+        )
+        
+        # Move the input tensors to the GPU if it is being used
+        tokenized = {key: value.to(self.device) for key, value in tokenized.items()}
+
+        return tokenized
+    
         raise NotImplementedError("Problem 2d has not been completed yet!")
 
     def _forward(self, input_: Dict[str, torch.Tensor]) -> \
@@ -198,6 +235,19 @@ class MultipleChoicePipeline(Pipeline):
         :return: The logit scores assigned to each next-token prediction
             as well as the input_ids tensor from input_
         """
+        with torch.no_grad():
+            outputs = self.model(**input_, return_dict = True)
+            logits = outputs.logits
+
+        # batch_size, sequence_length = input_["input_ids"].shape
+        # vocab_size = logits.size(-1)
+        # logits = logits.view(batch_size, sequence_length, vocab_size)
+
+        return {
+            "input_ids": input_["input_ids"],
+            "logits": logits,
+        }
+
         raise NotImplementedError("Problem 2d has not been completed yet!")
 
     def postprocess(self, outputs: Dict[str, torch.Tensor]) -> Output:
@@ -219,6 +269,34 @@ class MultipleChoicePipeline(Pipeline):
             responds to question i and column j corresponds to answer
             choice j
         """
+        logits = outputs["logits"]
+        input_ids = outputs["input_ids"]
+
+        shifted_input_ids = input_ids[:, 1:] # remove the first token
+        shifted_logits = logits[:, :-1, :] # remove the last token's logits
+
+        # compute the cross-entropy loss for each token
+        vocab_size = shifted_logits.size(-1)
+        loss = self.loss_fn(shifted_logits.reshape(-1, vocab_size),
+                            shifted_input_ids.reshape(-1))
+        
+        # Reshape loss back to the original shape
+        loss = loss.reshape(shifted_input_ids.size(0), shifted_input_ids.size(1))
+
+        # Sum the loss over the sequence length
+        total_loss = loss.sum(dim=1)
+
+        # Reshape total_loss into a matrix
+        loss_matrix = total_loss.reshape(-1, self.num_choices)
+
+        # Find the index of the minimum loss for each question
+        predictions = loss_matrix.argmin(dim=1)
+
+        # Return the results as an Output named tuple
+        return Output(loss=loss_matrix.cpu().numpy(),
+                      prediction=predictions.cpu().numpy())
+
+
         raise NotImplementedError("Problem 2d has not been completed yet!")
 
 
